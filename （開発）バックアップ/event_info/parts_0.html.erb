@@ -1,0 +1,124 @@
+<% if @system.is_area_edit? %><dl><% end %>
+
+<%#-- カテゴリ -- %>
+<% if @system.is_area_edit? && is_present(@part['category']) %>
+    <dt>イベント：カテゴリ</dt>
+    <dd><%= is_present(@part['category']) ? @part['category'].text.join('、') : '' %></dd>
+<% end %>
+
+<%#-- イベント画像 -- %>
+<% if @system.is_area_edit? && (is_present(@part['image']) && is_present(@part['alt'])) %>
+    <dt>イベント画像</dt>
+    <dd><img src="<%= @part['image'].access_path %>" alt="<%= @part['alt'].value %>" width="<%= @part['image'].width %>" height="<%= @part['image'].height %>"></dd>
+<% elsif @system.is_area_edit? && (is_present(@part['image']) && !is_present(@part['alt'])) %>
+	 <dt>イベント画像</dt>
+	 <dd><p><span class="red">画像：[エラー]画像を入力した場合は代替テキストの入力も必要です</span></p></dd>
+<% end %>
+
+<%#-- 施設 -- %>
+<% if @system.is_area_edit? && is_present(@part['facilities']) %>
+    <dt>施設</dt>
+    <dd><%= is_present(@part['facilities']) ? @part['facilities'].text : '' %></dd>
+<% end %>
+
+<%#-- 開催場所 -- %>
+<% if @system.is_edit? || is_present(@part['event_place']) || is_present(@part['place_page']) %>
+    <dt>開催場所</dt>
+    <dd>
+        <p>
+            <% if @system.is_edit? || is_present(@part['event_place']) %>
+                <%= @part['event_place'].br %>
+            <% end %>
+            <% if is_present(@part['place_page']) %>
+                <% if is_present(@part['event_place']) %> <br> <% end %>
+                <%= set_link(@part['place_page'].page) %>
+            <% end %>
+        </p>
+    </dd>
+<% end %>
+
+<%#-- エリア -- %>
+<% if @system.is_area_edit? && is_present(@part['area']) %>
+    <dt>開催エリア</dt>
+    <dd><%= is_present(@part['area']) ? @part['area'].text : '' %></dd>
+<% end %>
+
+<%#-- 対象 -- %>
+<% if @system.is_edit? || is_present(@part['target']) || is_present(@part['target_detail']) %>
+    <dt>対象</dt>
+    <dd>    
+        <p>
+        <% if @system.is_edit? || is_present(@part['target']) %>
+            <%= is_present(@part['target']) ? @part['target'].text.join('、') : '' %>
+        <% end %>
+        <% if is_present(@part['target_detail']) %>
+             <% if is_present(@part['target']) %> <br> <% end %>
+             <%= @part['target_detail'].br %>
+        <% end %>
+        </p>
+    </dd>
+<% end %>
+
+<%#-- 内容 -- %>
+<% if @system.is_edit? || is_present(@part['explanation']) %>
+    <dt>内容</dt>
+    <dd><%= is_present(@part['explanation']) ? add_tag_p(@part['explanation'].value) : '' %></dd>
+<% end %>
+
+<%#-- 申込み締め切り日 -- %>
+<% if @system.is_edit? || is_present(@part['limit_date']) || is_present(@part['limit_display']) %>
+    <dt>申込み締め切り日</dt>
+    <dd>
+        <% if is_present(@part['limit_date']) %>
+            <p><%= @part['limit_date'].format(year_format+'年%1m月%1d日（{w}曜日）') %></p>
+        <% end %>
+        <% if (is_present(@part['limit_date']) && @part['limit_date'].value < @system.target_date_raw.format("%Y/%m/%d")) || @part['limit_display'].value.include?('1') %>
+            <p class="red"><strong>申込みは終了しました。</strong></p>
+        <% end %>
+    </dd>
+<% end %>
+
+<%#-- 申込み -- %>
+<% if @system.is_edit? || is_present(@part['limit']) || is_present(@part['limit_detail']) %>
+	<dt>申込み</dt>
+	<dd>
+		<% if is_present(@part['limit']) && @part['limit'].value == '1' %>
+			<p><span class="red"><strong><%= is_present(@part['limit']) ? @part['limit'].text : '' %></strong></span></p>
+		<% elsif @part['limit'].value != "" %>
+			<p><%= @part['limit'].text %></p>
+		<% end %>
+		<% if is_present(@part['limit_detail']) %>
+			<%= add_tag_p(@part['limit_detail'].value) %>
+		<% end %>
+	</dd>
+<% end %>
+
+<%# 初期非表示 %>
+<% if false %>
+<%#-- ユニバーサルデザイン -- %>
+<% if @system.is_edit? || is_present(@part['ud']) %>
+	<dt>ユニバーサルデザイン</dt>
+    <dd>
+        <% if is_present(@part['ud']) %>
+            <%= is_present(@part['ud']) ? @part['ud'].text.join('、') : '' %>
+        <% end %>
+    </dd>
+<% end %>
+
+<%#-- 費用 -- %>
+<% if @system.is_edit? || is_present(@part['expense']) || is_present(@part['expense_detail']) %>
+	<dt>費用</dt>
+	<dd>
+		<% if is_present(@part['expense']) && @part['expense'].value == '1' %>
+			<p><span class="red"><strong><%= is_present(@part['expense']) ? @part['expense'].text : '' %></strong></span></p>
+		<% elsif @part['expense'].value != "" %>
+			<p><%= @part['expense'].text %></p>
+		<% end %>
+		<% if is_present(@part['expense_detail']) %>
+			<%= add_tag_p(@part['expense_detail'].value) %>
+		<% end %>
+	</dd>
+<% end %>
+<% end %>
+
+<% if @system.is_area_edit? %></dl><% end %>

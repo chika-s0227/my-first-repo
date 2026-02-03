@@ -1,0 +1,225 @@
+<%# get_flat(tree)_content使用のため、メモリをクリーンナップしてから実行  %>
+<% memory_cleaning %>
+<% if !@system.is_snapshot? %>
+	<p>このページはスナップショット以降にご確認いただけます。</p>
+	<h2>重要</h2>
+	<p>このページは、システム連携ページです。<br><strong><span class="red">イベントカレンダー・イベント検索で使用するページです。<br>下記の操作を行うとシステムに不具合が生じます。</span></strong></p>
+	<ul>
+		<li>ページの削除</li>
+		<li>公開期間の変更</li>
+		<li>公開状態の変更</li>
+		<li>階層の移動</li>
+		<li>ファイル名の変更</li>
+	</ul>
+	<p><strong><span class="red">ホームページ上のシステムに致命的なエラーが発生しますので、変更時はサポートまでご連絡ください。</span></strong></p>
+<% else %>
+	<% 
+		#-- 出力オプション設定 ---
+		options = {
+			published_only: true,
+			template_code: ['102_event'],
+			page_kind: [2]
+		}
+
+		pages = get_flat_content(options)
+
+		events = []
+		categories = Hash.new
+		places = Hash.new
+		areas = Hash.new
+		targets = Hash.new
+		applications = Hash.new
+		uds = Hash.new
+		expenses = Hash.new
+		holidays = SETTINGS.holidays.to_hash.map do |k, v|
+			Date.parse(k.to_s).strftime("%Y/%m/%d")
+		end
+
+		pages.each do |page|
+
+			next if page.common(9).list.include?('event_hide') || get_parts(page['event'],'event_undecided').length > 0
+			#*==========[日付テキスト]==========*#
+			ary_dayinfo = get_parts(page['event'],'cmn_text')
+			#*==========[時間(選択肢)]==========*#
+			ary_time = get_parts(page['time'],'event_time')
+			#*==========[時間詳細]==========*#
+			ary_timeinfo = get_parts(page['time'],'event_timeinfo')
+			#*==========[イベント詳細]==========*#
+			event_info = get_parts(page['event2'],'event_info')[0]
+
+			event = Hash.new
+			#*==========[ページタイトル]==========*#
+			event["eventtitle"] = page.page_title
+			#*==========[URL]==========*#
+			event["url"] = page.snapshot_path.gsub(/^\.\.|^\./){''}
+			#*==========[内容]==========*#
+			if is_present(event_info['explanation'])
+				event["description"] = @util.replace_crlf(@util.delete_tags(event_info['explanation'].value.gsub(/&nbsp;/, '&#160;')),'')
+			end
+			#*==========[分類]==========*#
+			if is_present(event_info['category'])
+				event["category"] = []
+				event_info['category'].value.each_with_index do |key, i|
+					event["category"].push(key)
+					categories[key] = event_info['category'].text[i]
+				end
+			end
+			#*==========[開催日　一日開催のイベント]==========*#
+			ary_1day = get_parts(page['event'],'event_1day')
+			if ary_1day.length > 0
+				event["opendays"] = []
+				ary_1day.each do |part|
+					1.upto(5) do |x|
+						idx = x.to_s
+						if is_present(part['date_'+ idx])
+							event["opendays"].push(part['date_'+ idx].format('%Y/%m/%d'))
+						end
+					end
+				end
+			end
+			#*==========[[開催日　期間]]==========*#
+			ary_term = get_parts(page['event'],'event_term')
+			if ary_term.length > 0
+				event["opendays"] = []
+				event["kikandays"] = []
+				ary_term.each do |part|
+					1.upto(3) do |x|
+						kikan_s = part['start_date_' + x.to_s]
+						kikan_e = part['end_date_' + x.to_s]
+						if is_present(kikan_s) && is_present(kikan_e)
+							event["kikandays"].push({from: kikan_s.format('%Y/%m/%d'), to: kikan_e.format('%Y/%m/%d'), term: (kikan_e.raw.to_date - kikan_s.raw.to_date).to_i+1})
+							(kikan_s.raw.to_date..kikan_e.raw.to_date).each{ |d| event["opendays"].push(d.strftime('%Y/%m/%d')) }
+						end
+					end
+				end
+			end
+			#*==========[開催日　定期開催]==========*#
+			ary_regular = get_parts(page['event'],'event_regular')
+			if ary_regular.length > 0
+				ary_regular.each do |part|
+					event["opendays"] = []
+					if is_present(part['start_date'])
+						event["regularstart"] = part['start_date'].format('%Y/%m/%d')
+					end
+					if is_present(part['end_date'])
+						event["regularend"]= part['end_date'].format('%Y/%m/%d')
+					end
+					if part['week_day'].value.length > 0
+						event["regularweek"] = part['week_day'].value
+					end
+					if is_present(part['start_date']) && is_present(part['end_date'])
+						(part['start_date'].raw.to_date..part['end_date'].raw.to_date).each do |d|
+							if part['week_day'].value.length < 1 || part['week_day'].value.include?((d.wday+1).to_s)
+								event["opendays"].push(d.strftime('%Y/%m/%d'))
+							end
+						end
+					end
+				end
+			end
+			#*==========[日付テキスト]==========*#
+			if ary_dayinfo.length > 0
+				tmp_day = []
+				ary_dayinfo.each do |part|
+					if is_present(part['text'])
+						tmp_day.push(@util.replace_crlf(@util.delete_tags(part['text'].value.gsub(/&nbsp;/, '&#160;')),''))
+					end
+				end
+				if tmp_day.size > 0
+					event["day_text"] = tmp_day
+				end
+			end
+			#*==========[時間(選択肢)]==========*#
+			if ary_time.length > 0
+				event["times"] = []
+				ary_time.each do |part|
+					if is_present(part['start_hour']) && is_present(part['start_minute']) && is_present(part['end_hour']) && is_present(part['end_minute'])
+						event["times"].push((part['start_hour'].value == '12' && part['start_minute'].value == '00' && "正午" || part['start_hour'].text + part['start_minute'].text) + "から" + (part['end_hour'].value == '12' && part['end_minute'].value == '00' && "正午" || part['end_hour'].text + part['end_minute'].text) + "まで")
+					end
+				end
+			end
+			#*==========[時間詳細]=========*#
+			if ary_timeinfo.length > 0
+				tmp_timetext = []
+				ary_timeinfo.each do |part|
+					if is_present(part['time_info'])
+						tmp_timetext.push(@util.replace_crlf(@util.delete_tags(part['time_info'].value.gsub(/&nbsp;/, '&#160;')),''))
+					end
+				end
+				if tmp_timetext.size > 0
+					event["time_texts"] = tmp_timetext.join(",")
+				end
+			end
+
+			#*==========[画像]==========*#
+			if is_present(event_info['image']) && is_present(event_info['alt'])
+				event["img"] = event_info['image'].access_path
+				event["img_width"] = event_info['image'].width
+				event["img_height"] = event_info['image'].height
+				event["img_alt"] = event_info['alt'].value
+			end
+
+			#*==========[施設]==========*#
+			if is_present(event_info['facilities'])
+				event["place"] = event_info['facilities'].value
+				places[event_info['facilities'].value] = event_info['facilities'].text
+			end
+			#*==========[会場]==========*#
+			if is_present(event_info['event_place'])
+				event["place2"] = @util.replace_crlf(@util.delete_tags(event_info['event_place'].value.gsub(/&nbsp;/, '&#160;')),'')
+				event["place2"] += "[#{event_info['place_page'].page_title}]" if is_present(event_info['place_page'])
+			end
+			#*==========[エリア]==========*#
+			if is_present(event_info['area'])
+				event["area"] = event_info['area'].value
+				areas[event_info['area'].value] = event_info['area'].text
+			end
+			#*==========[対象(「0:どなたでも」はCGIに送らない)]==========*#
+			if is_present(event_info['target'])
+				event["target"] = []
+				event_info['target'].value.each_with_index do |key, i|
+					event["target"].push(key)
+					targets[key] = event_info['target'].text[i]
+				end
+			end
+			#*==========[事前申し込み]==========*#
+			if is_present(event_info['limit_date'])
+				event["offer_endday"] = event_info['limit_date'].format('%Y/%m/%d')
+			end
+			#*==========[事前申し込み　申し込み終了（手動）]==========*#
+			if is_present(event_info['limit_display'])
+				event["offer"] = 1
+			end
+			#*==========[申し込み　必要・不要選択]==========*#
+			if is_present(event_info['limit'])
+				event["application"] = event_info['limit'].value
+				applications[event_info['limit'].value] = event_info['limit'].text
+			end
+			#*==========[ユニバーサルデザイン(「0」はCGIに送らない)]==========*#
+			if is_present(event_info['ud']) && event_info['ud'].value[0] != "0"
+				event["universal"] = []
+				event_info['ud'].value.each_with_index do |key, i|
+					event["universal"].push(key)
+					uds[key] = event_info['ud'].text[i]
+				end
+			end
+			#*==========[費用　必要・不要選択]==========*#
+			if is_present(event_info['expense'])
+				event["expense"] = event_info['expense'].value
+				expenses[event_info['expense'].value] = event_info['expense'].text
+			end
+			events.push(event)
+		end
+
+	%>
+var event_data = {
+  events: <%= events.to_json %>,
+  categories: <%= categories.to_json %>,
+  places: <%= places.to_json %>,
+  areas: <%= areas.to_json %>,
+  targets: <%= targets.to_json %>,
+  applications: <%= applications.to_json %>,
+  uds: <%= uds.to_json %>,
+  expenses: <%= expenses.to_json %>,
+  holidays: <%= holidays.to_json %>
+};
+<% end %>

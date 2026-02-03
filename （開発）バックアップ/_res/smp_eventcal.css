@@ -1,0 +1,1149 @@
+@charset "utf-8";
+/*******************************************************************************
+イベントカレンダー
+*******************************************************************************/
+/*==============================================================================
+	レイアウト
+==============================================================================*/
+.eventactive{
+    height: 100%;
+    width: 100%;
+    position:fixed;
+}
+#eventcalendar{
+	padding-bottom:10px;
+}
+/*------------------------------------------------------------------------------
+	イベント検索
+------------------------------------------------------------------------------*/
+#eventsearch{
+	height:100%;
+	width:100%;
+	position:fixed;
+    left: -100%;
+	top:0px;
+	z-index:11111;
+}
+#esearchbox{
+	padding:10px 10px 10px 10px;
+	height:100%;
+	position:relative;
+	overflow:auto;
+	background:var(--green);
+	box-sizing:border-box;
+}
+#esearch{
+	width:100%;
+	background:#D0E7FF;
+	padding:15px;
+	text-align:left;
+	border-radius:5px;
+	box-sizing:border-box;
+}
+/*==============================================================================
+	イベント検索項目
+==============================================================================*/
+#esearch h2{
+	margin-bottom:15px;
+	padding:5px 2px 5px 2px;
+	border-bottom:3px solid var(--green);
+}
+/*------------------------------------------------------------------------------
+	ボタン
+------------------------------------------------------------------------------*/
+#eventlink{
+	margin:0px 10px 20px 10px;
+}
+/*------------------------------------------------------------------------------
+	募集締切、長期イベントへのリンク
+------------------------------------------------------------------------------*/
+#eventjump{
+	margin:8px 0px 8px 0px;
+	width:100%;
+	clear:both;
+}
+#eventjump::after{
+	content:"";
+	display:block;
+	clear:both;
+}
+#eventjump ul{
+	list-style-type:none;
+}
+#eventjump ul::after{
+	content:"";
+	display:block;
+	clear:both;
+}
+#eventjump ul li{
+	margin:0px 0px 0px 0px;
+	width:33.333%;
+	float:left;
+	font-size:85%;
+	text-align:left;
+}
+#eventjump ul li:last-child{
+	margin:0px 0px 0px 0px;
+}
+#eventjump ul li a{
+	margin:0px 2px 0px 2px;
+	padding:8px 8px 16px 35px;
+	display:block;
+	position:relative;
+	color:#222222;
+	text-decoration:none;
+	font-weight:bold;
+	background:#efefef;
+	border-bottom:3px solid #999;
+	border-radius:5px;
+	line-height:1.3;
+}
+#eventjump ul li a::after{
+	content:"";
+	margin:0 auto;
+	width:6px;
+	height:6px;
+	position:absolute;
+	right:0;
+	left:0;
+	bottom:8px;
+	border-right:2px solid #000;
+	border-bottom:2px solid #000;
+	transform:rotate(45deg);
+}
+#eventjump ul li.ecalendar a{
+	background:#efefef url(images/eventcal/event.svg) no-repeat 9px 12px;
+}
+#eventjump ul li.longterm a{
+	background: #efefef url(images/eventcal/longterm.svg) no-repeat 7px 13px;
+}
+#eventjump ul li.termination a{
+	background: #efefef url(images/eventcal/termination.svg) no-repeat 7px 12px;
+}
+/*------------------------------------------------------------------------------
+	イベント検索を開くボタン
+------------------------------------------------------------------------------*/
+#esearchbtn{
+	margin:0px 0px 10px 0px;
+	width:100%;
+	border-radius:5px;
+}
+#esearchbtn button{
+	margin:0px;
+	padding:20px 0px 20px 55px;
+	width:100%;
+	display:block;
+	font-weight:bold;
+	font-size:130%;
+	color:#FFFFFF;
+	cursor:pointer;
+	border:none;
+	background:var(--green) url(images/eventcal/search.svg) no-repeat 10px center;
+	border-radius:5px;
+	line-height:1.2;
+	-webkit-appearance:none;
+	position:relative;
+	text-align:left;
+}
+#esearchbtn button br{
+	display:none;
+}
+#esearchbtn button::after{
+	content:"";
+	width:8px;
+	height:8px;
+	position:absolute;
+	top:calc(50% - 5px);
+	right:12px;
+	border-right:2px solid #FFF;
+	border-top:2px solid #FFF;
+	transform:rotate(45deg);
+}
+.eventactive #esearchbtn button::after{
+	transform:rotate(-135deg);
+	right:8px;
+}
+/*------------------------------------------------------------------------------
+	検索条件
+------------------------------------------------------------------------------*/
+#esearch .conditions{
+	margin:0px 0px 10px 0px;
+	padding:10px 15px 15px 15px;
+	background:#FFFFFF;
+	border-radius:5px;
+	text-align:left;
+}
+#esearch .conditions fieldset,#esearch .conditions legend{
+	margin:0px;
+	padding:0px;
+	border:none;
+}
+/*	見出し
+------------------------------------------------------------------------------*/
+#esearch .conditions h3{
+	margin-bottom:10px;
+	padding:0px 10px 0px 5px;
+	font-size:110%;
+	border-left:5px solid var(--green);
+}
+#esearch .conditions label.keyword,#esearch .conditions legend{
+	margin-bottom:10px;
+	padding:0px 10px 0px 5px;
+	display:block;
+	font-size:110%;
+	font-weight:bold;
+	border-left:5px solid var(--green);
+}
+#esearch .conditions legend h3{
+	margin-bottom:0px;
+}
+/*	キーワード
+------------------------------------------------------------------------------*/
+#esearch .conditions input{
+	margin:7px 5px 0px 0px;
+	vertical-align:top;
+}
+#esearch .conditions input#text{
+	margin:0px;
+	padding:10px 5px 10px 5px;
+	width:95%;
+	font-size:120%;
+	background:#FFFFFF;
+	border:2px solid #CCCCCC;
+	-webkit-appearance:none;
+}
+/*	チェックボックス、ラジオボタン
+------------------------------------------------------------------------------*/
+#esearch .conditions ul{
+	list-style-type:none;
+}
+#esearch .conditions ul::after{
+	content:"";
+	display:block;
+	clear:both;
+}
+#esearch .conditions ul li{
+	margin-bottom:4px;
+	line-height:1.4;
+}
+#esearch .conditions ul li:nth-child(odd){
+	clear:both;
+}
+#esearch .conditions ul label{
+	padding:5px 5px 5px 0px;
+	display:inline-block;
+	width:85%;
+}
+/*	セレクトボックス
+------------------------------------------------------------------------------*/
+#esearch .conditions select{
+	margin-bottom:5px;
+	padding:7px 5px 7px 5px;
+	font-size:120%;
+}
+#esearch .conditions select#place{
+	width:85%;
+}
+/*	期間
+------------------------------------------------------------------------------*/
+#esearch .conditions .datepickerbox{
+	margin:0px 7px 3px 0px;
+	padding:5px 28px 5px 5px;
+	width:65%;
+	font-size:100%;
+	background:#FFFFFF;
+	border:1px solid #CCCCCC;
+	display:inline-block;
+	position:relative;
+	z-index:22222;
+}
+#esearch .conditions .datepicker{
+	padding:3px 5px 3px 5px;
+	font-size:120%;
+	width:100%;
+	border:none;
+	box-sizing:border-box;
+}
+/*	条件検索追加ボタン
+------------------------------------------------------------------------------*/
+.addconditions{
+	text-align:left;
+}
+.addconditions>p{
+	margin:0px 0px 10px 0px;
+	display:inline-block;
+	position:relative;
+	-webkit-appearance:none;
+}
+.addconditions>p a{
+	padding:13px 25px 13px 50px;
+	display:block;
+	font-weight:bold;
+	font-size:100%;
+	color:#222222;
+	cursor:pointer;
+	background:#FFFFFF;
+	border:none;
+	border-radius:5px;
+}
+.addconditions>p::before{
+	content:"";
+	width:31px;
+	height:31px;
+	position:absolute;
+	left:10px;
+	top:calc((100% - 31px) / 2);
+	background:var(--green);
+	border-radius:50%;
+}
+.addconditions>p.plus a::before,.addconditions>p.minus a::before{
+	content:"";
+	width:15px;
+	height:3px;
+	position:absolute;
+	left:18px;
+	top:calc((100% - 3px) / 2);
+	background:#FFF;
+}
+.addconditions>p.plus a::after{
+	content:"";
+	width:3px;
+	height:15px;
+	position:absolute;
+	left:24px;
+	top:calc((100% - 15px) / 2);
+	background:#FFF;
+}
+/*	検索ボタン
+------------------------------------------------------------------------------*/
+.eventsearch{
+	margin-top:15px;
+	padding:25px 0px 25px 0px;
+	width:100%;
+	font-weight:bold;
+	font-size:120%;
+	color:#FFFFFF;
+	cursor:pointer;
+	background:var(--green);
+	border:none;
+	border-radius:5px;
+	-webkit-appearance:none;
+}
+/*	閉じるボタン
+------------------------------------------------------------------------------*/
+.eventclose{
+	margin:10px auto 0px auto;
+	width:60%;
+	display:block;
+	-webkit-appearance:none;
+	box-sizing:border-box;
+}
+.eventclose a{
+	padding:13px 0px 13px 50px;
+	display:block;
+	position:relative;
+	color:var(--green);
+	font-weight:bold;
+	font-size:100%;
+	background:#FFFFFF;
+	border:2px solid var(--green);
+	border-radius:5px;
+	text-align:left;
+	text-decoration:none;
+}
+.eventclose a::before,.eventclose a::after{
+	content:"";
+	width:3px;
+	height:22px;
+	position:absolute;
+	left:24px;
+	top:calc((100% - 22px) / 2);
+	background:var(--green);
+	border-radius:3px;
+}
+.eventclose a::before{
+	transform:rotate(45deg);
+}
+.eventclose a::after{
+	transform:rotate(-45deg);
+}
+/*------------------------------------------------------------------------------
+	エラー
+------------------------------------------------------------------------------*/
+#esearch #inputerror{
+	margin:0px 0px 20px 0px;
+	padding:8px;
+	background-color:#FFE8E8;
+	border:1px solid #900;
+}
+#esearch #inputerror p{
+	margin:0px;
+	padding:10px 10px 10px 15px;
+	color:#900;
+	font-weight:bold;
+	background-color:#FFF;
+	text-align:left;
+}
+#esearch .error{
+	background:#FFFFDD;
+}
+#eventsearch #esearch .error label.keyword,#eventsearch #esearch .error legend{
+	border-color:#900;
+}
+#esearch .error .errortxt{
+	color:#900;
+}
+/*==============================================================================
+	カレンダー共通
+==============================================================================*/
+/*------------------------------------------------------------------------------
+	一覧見出し
+------------------------------------------------------------------------------*/
+#ecalendar h2,
+#eventcardbox h2{
+	margin:0px 0px 5px 0px;
+	padding:5px 10px 5px 25px;
+	font-size:130%;
+	vertical-align:middle;
+	position: relative;
+}
+#ecalendar h2::before,
+#eventcardbox h2::before{
+	content: "";
+	position: absolute;
+	width: 20px;
+	height: 34px;
+	top: 0;
+	bottom: 0;
+	left: 0;
+	margin: auto;
+	background: var(--green);
+    mask: url(images/eventcal/event_h2.svg) no-repeat left center;
+	-webkit-mask: url(images/eventcal/event_h2.svg) no-repeat left center;
+}
+/*------------------------------------------------------------------------------
+	表示切替
+------------------------------------------------------------------------------*/
+#eventswitch{
+	margin:0px 0px 10px 15px;
+	float:right;
+	font-size:95%;
+}
+#eventswitch ul{
+	display:inline-block;
+	list-style-type:none;
+	vertical-align:bottom;
+}
+#eventswitch ul::after{
+	content:"";
+	display:block;
+	clear:both;
+}
+#eventswitch ul li{
+	float:left;
+}
+#eventswitch ul li img{
+	vertical-align:bottom;
+}
+#eventswitch ul li a{
+	padding:8px 10px 8px 35px;
+	display:block;
+	color:#222222;
+	background:#EEEEEE;
+	border:1px solid #CCCCCC;
+	text-decoration:none;
+}
+#eventswitch ul li.datetype a{
+	background:#EEEEEE url(images/eventcal/cal_off.svg) no-repeat 8px center;
+	border-right:none;
+	border-radius:3px 0 0 3px;
+}
+#eventswitch ul li.listtype a{
+	background:#EEEEEE url(images/eventcal/list_off.svg) no-repeat 10px center;
+	border-left:none;
+	border-radius:0 3px 3px 0;
+}
+#eventswitch ul li.active a{
+	background-color:#CCCCCC;
+}
+#eventswitch ul li.datetype.active a{
+	background:#CCCCCC;
+	position: relative;
+}
+#eventswitch ul li.datetype.active a::before{
+	content: "";
+	position: absolute;
+	width: 20px;
+	height: 20px;
+	top: 0;
+	bottom: 0;
+	left: 8px;
+	margin: auto;
+	background: var(--green);
+    mask: url(images/eventcal/cal_on.svg) no-repeat left center;
+	-webkit-mask: url(images/eventcal/cal_on.svg) no-repeat left center;
+}
+#eventswitch ul li.listtype.active a{
+	background:#CCCCCC;
+	position: relative;
+}
+#eventswitch ul li.listtype.active a::before{
+	content: "";
+	position: absolute;
+	width: 18px;
+	height: 18px;
+	top: 0;
+	bottom: 0;
+	left: 10px;
+	margin: auto;
+	background: var(--green);
+    mask: url(images/eventcal/list_on.svg) no-repeat left center;
+	-webkit-mask: url(images/eventcal/list_on.svg) no-repeat left center;
+}
+/*------------------------------------------------------------------------------
+	検索条件
+------------------------------------------------------------------------------*/
+#eventcondition{
+	margin:0px 10px 25px 10px;
+	padding:10px;
+	background:#D0E7FF;
+	border-radius:5px;
+	position: relative;
+}
+#eventcondition h2{
+	margin-bottom:5px;
+	padding:3px 10px 0px 28px;
+	font-size:120%;
+	position: relative;
+}
+#eventcondition h2::before{
+	content: "";
+	position: absolute;
+	width: 22px;
+	height: 22px;
+	top: 0;
+	bottom: 0;
+	left: 0;
+	margin: auto;
+	background: var(--green);
+    mask: url(images/eventcal/narrow.svg) no-repeat left center;
+	-webkit-mask: url(images/eventcal/narrow.svg) no-repeat left center;
+}
+/*	条件
+------------------------------------------------------------------------------*/
+#eventcondition dl{
+	margin:0px 5px 5px 5px;
+	clear:both;
+	background:#FFFFFF;
+	border-bottom:1px solid #CCC;
+}
+#eventcondition dl::after{
+	content:"";
+	display:block;
+	clear:both;
+}
+#eventcondition dt{
+	padding:5px 8px 5px 8px;
+	width:27%;
+	float:left;
+	clear:both;
+	font-weight:bold;
+	background:#FFF;
+	border-top:1px solid #CCC;
+	box-sizing:border-box;
+}
+#eventcondition dd{
+	padding:5px 8px 5px 8px;
+	width:73%;
+	float:right;
+	border-left:2px dotted #CCC;
+	border-top:1px solid #CCC;
+	box-sizing:border-box;
+}
+#eventcondition dd ul{
+	margin:0px;
+	list-style-type:none;
+}
+#eventcondition dd ul li{
+	padding:0px 0px 3px 0px;
+	display:inline-block;
+}
+/*	クリアボタン
+------------------------------------------------------------------------------*/
+.clearsearch{
+	margin:10px auto 10px auto;
+	padding:5px 0px 5px 0px;
+	width:40%;
+	display:block;
+	font-weight:bold;
+	font-size:100%;
+	color:#222222;
+	cursor:pointer;
+	background:#efefef;
+	border:1px solid #999;
+	border-radius:5px;
+	-webkit-appearance:none;
+	box-sizing:border-box;
+	vertical-align:top;
+}
+/*------------------------------------------------------------------------------
+	長期イベント、もうすぐ募集締切り
+------------------------------------------------------------------------------*/
+#eventbottom{
+	margin:0px 10px 0px 10px;
+}
+#eventcalendar .eventlist{
+	margin:45px auto 0px auto;
+	position:relative;
+	border:5px solid var(--green);
+	border-radius:5px;
+}
+#eventcalendar .eventlist::after{
+	content:"";
+	display:block;
+	clear:both;
+}
+#eventcalendar .eventlist h2{
+	padding:10px 5px 10px 5px;
+	vertical-align:middle;
+	font-size:110%;
+	color:#FFFFFF;
+	background:var(--green);
+	text-align:center;
+	line-height:1.2;
+}
+#longterm::before{
+	content:"";
+	width:49px;
+	height:52px;
+	background:url(images/eventcal/longterm_h2__.svg) no-repeat left top;
+	position:absolute;
+	display:inline-block;
+	left:10px;
+	top:-41px;
+}
+#termination::before{
+	content:"";
+	width:36px;
+	height:37px;
+	background: var(--green);
+    mask: url(images/eventcal/termination_h2.svg) no-repeat left top;
+    -webkit-mask: url(images/eventcal/termination_h2.svg) no-repeat left top;
+	position:absolute;
+	display:inline-block;
+	left:15px;
+	top:-41px;
+}
+#termination br{
+	display:none;
+}
+/*	イベント
+------------------------------------------------------------------------------*/
+#eventcalendar .eventlist .lists{
+	padding:15px 15px 5px 15px;
+	background:#FFFFFF;
+}
+#eventcalendar .eventlist .lists p{
+	margin:0px 5px 15px 5px;
+}
+#eventcalendar .eventlist .lists ul{
+	margin:5px 5px 0px 5px;
+	list-style-type:none;
+}
+#eventcalendar .eventlist .lists ul li{
+	margin-bottom:10px;
+	padding-left:15px;
+	padding-bottom:10px;
+	position: relative;
+	border-bottom:2px solid #EEEEEE;
+	line-height:1.8;
+}
+#eventcalendar .eventlist .lists ul li::before{
+	content:"";
+	position:absolute;
+	top:calc(0.9em - 6px);
+	left:0px;
+	border-top:5px solid transparent;
+	border-left:7px solid #999;
+	border-bottom:5px solid transparent;
+}
+#eventcalendar .eventlist .lists ul li a::after{
+	content:'';
+	display:block;
+}
+#eventcalendar .eventlist .lists ul li br{
+	display:none;
+}
+/*------------------------------------------------------------------------------
+	イベントカテゴリ
+------------------------------------------------------------------------------*/
+#eventcalendar table ul li img{
+	vertical-align:middle;
+}
+#eventcalendar span.ecate{
+	margin-left:3px;
+	padding:2px 10px 2px 10px;
+	font-size:80%;
+	color:#222222;
+	display:inline-block;
+	vertical-align:middle;
+	line-height:1.4;
+	background:#E0E0E0;
+	border-radius:3px;
+}
+#eventcalendar span.e10{
+	background:#fff69e;
+}
+#eventcalendar span.e20{
+	background:#ffd0a1;
+}
+#eventcalendar span.e30{
+	background:#ffcbca;
+}
+#eventcalendar span.e40{
+	background:#ecccf4;
+}
+#eventcalendar span.e50{
+	background:#cfc2ef;
+}
+#eventcalendar span.e60{
+	background:#c8d7f5;
+}
+#eventcalendar span.e70{
+	background:#d1edfb;
+}
+#eventcalendar span.e80{
+	background:#d0efe7;
+}
+#eventcalendar span.e90{
+	background:#d0efd5;
+}
+#eventcalendar span.e100{
+	background:#e6f4ba;
+}
+/*	開催期間、締切り
+------------------------------------------------------------------------------*/
+#eventcalendar span.kaisaikikan{
+	margin:0px 10px 0px 0px;
+	background:#D0E7FF;
+	border:none;
+}
+#eventcalendar span.termination{
+	margin:0px 10px 0px 0px;
+	background:#FAD029;
+}
+/*	募集必要、募集終了
+------------------------------------------------------------------------------*/
+#eventcalendar span.app1,
+#eventcalendar span.app2,
+#eventcalendar span.boshuend{
+	margin-left:2em;
+	color:#FFFFFF;
+	border:none;
+	position:relative;
+	z-index:0;
+}
+#eventcalendar span.app1::before,
+#eventcalendar span.app2::before,
+#eventcalendar span.boshuend::before{
+	content:"";
+	width: 1.4em;
+	height: 1.4em;
+	line-height: 1.4em;
+	font-size:160%;
+	font-weight: normal;
+	display: inline-block;
+	position: absolute;
+	color: white;
+	text-align: center;
+	left: -0.9em;
+	top:-0.2em;
+	border-radius: 50%;
+	z-index:-1;
+}
+#eventcalendar span.app1{
+	background:#093368;
+}
+#eventcalendar span.app2{
+	background:#246809;
+}
+#eventcalendar span.app1::before{
+	background:#093368 url(images/eventcal/entry.svg) no-repeat center center;
+}
+#eventcalendar span.app2::before{
+	background:#246809 url(images/eventcal/entry.svg) no-repeat center center;
+}
+#eventcalendar span.boshuend{
+	background:#9E021C;
+}
+#eventcalendar span.boshuend::before{
+	background:#9E021C url(images/eventcal/end.svg) no-repeat center center;
+}
+/*------------------------------------------------------------------------------
+	もっと見る
+------------------------------------------------------------------------------*/
+#eventcalendar .moreevent{
+	margin:0px 10px 15px 10px;
+}
+#eventcalendar .moreevent a{
+	margin:0px;
+	padding:10px 0px 18px 0px;
+	width:100%;
+	display:inline-block;
+	position:relative;
+	font-weight:bold;
+	font-size:110%;
+	color:#222222;
+	cursor:pointer;
+	background:#D0E7FF;
+	border:none;
+	border-radius:5px;
+	-webkit-appearance:none;
+	text-align:center;
+	text-decoration:none;
+}
+#eventcalendar .moreevent a::after{
+	content:"";
+	width:8px;
+	height:8px;
+	position:absolute;
+	left:calc(50% - 5px);
+	bottom:12px;
+	border-right:2px solid var(--green);
+	border-bottom:2px solid var(--green);
+	transform:rotate(45deg);
+}
+/*==============================================================================
+	カレンダー表示
+==============================================================================*/
+#ecalendar{
+	padding:0px 10px 0px 10px;
+	width:100%;
+	position:relative;
+	clear:both;
+	box-sizing:border-box;
+}
+/*------------------------------------------------------------------------------
+	カレンダー
+------------------------------------------------------------------------------*/
+#ecalendar table{
+	margin:0px auto 0px auto;
+	width:100%;
+	border-spacing:0px 10px;
+}
+/*	日付
+------------------------------------------------------------------------------*/
+#ecalendar table th{
+	padding:10px 5px 10px 5px;
+	display:block;
+	text-align:center;
+	line-height:1.2;
+	border-radius:5px 5px 0px 0px;
+}
+#ecalendar table th em{
+	font-size:170%;
+	font-style:normal;
+}
+#ecalendar table th.day{
+	color:#FFFFFF;
+	background:#4F4F4F;
+}
+#ecalendar table th.sat{
+	color:#FFFFFF;
+	background:#076CCA;
+}
+#ecalendar table th.sun{
+	color:#FFFFFF;
+	background:#CA0730;
+}
+#ecalendar table th .week{
+	margin-left:15px;
+}
+/*	イベント
+------------------------------------------------------------------------------*/
+#ecalendar table td{
+	padding:5px 10px 8px 10px;
+	background:#FFFFFF;
+	display:block;
+	border-left:1px solid #CCCCCC;
+	border-right:1px solid #CCCCCC;
+	border-bottom:1px solid #CCCCCC;
+	border-radius:0px 0px 5px 5px;
+}
+#ecalendar table ul{
+	margin:5px 5px 0px 5px;
+	list-style-type:none;
+}
+#ecalendar table ul li{
+	margin-bottom:10px;
+	padding-top:5px;
+	padding-left:15px;
+	position:relative;
+	line-height:1.8;
+	border-top:1px dotted #CCCCCC;
+}
+#ecalendar table ul li:first-child{
+	border-top:none;
+}
+#ecalendar table ul li::before{
+	content:"";
+	position:absolute;
+	top:calc(5px + 0.9em - 6px);
+	left:0px;
+	border-top:5px solid transparent;
+	border-left:7px solid #999;
+	border-bottom:5px solid transparent;
+}
+#ecalendar table ul li a::after{
+	content:'';
+	display:block;
+}
+/*	月送り
+------------------------------------------------------------------------------*/
+#eventcalendar ul.month{
+	margin:15px 10px 5px 10px;
+	list-style-type:none;
+	display:flex;
+	clear:both;
+}
+#eventcalendar #ecalendar ul.month{
+	margin:15px 0px 10px 0px;
+}
+#eventcalendar ul.month li{
+	position:relative;
+	text-align:center;
+	background:#EEEEEE;
+	flex-grow:1;
+}
+#eventcalendar ul.month li.pre{
+	border-radius:50px 0 0 50px;
+}
+#eventcalendar ul.month li.next{
+	border-radius:0 50px 50px 0;
+}
+#eventcalendar ul.month li.this::before,
+#eventcalendar ul.month li.this::after{
+	content:"";
+	width:1px;
+	height:calc(100% - 16px);
+	position:absolute;
+	left:0px;
+	top:8px;
+	background:#CCC;
+}
+#eventcalendar ul.month li.this::after{
+	left:auto;
+	right:0px;
+}
+#eventcalendar ul.month li a{
+	padding:10px 3px 10px 3px;
+	display:block;
+	position:relative;
+	color:#222222;
+	text-decoration:none;
+}
+#eventcalendar ul.month li.pre a{
+	padding-left:21px;
+}
+#eventcalendar ul.month li.next a{
+	padding-right:21px;
+}
+#eventcalendar ul.month li.pre a::before,
+#eventcalendar ul.month li.next a::before{
+	content:"";
+	width:12px;
+	height:12px;
+	position:absolute;
+	top:calc(50% - 7px);
+	border-top:2px solid var(--green);
+	border-right:2px solid var(--green);
+	box-sizing:border-box;
+}
+#eventcalendar ul.month li.pre a::before{
+	left:13px;
+	transform:rotate(-135deg);
+}
+#eventcalendar ul.month li.next a::before{
+	right:13px;
+	transform:rotate(45deg);
+}
+/*==============================================================================
+	一覧表示
+==============================================================================*/
+#eventcardbox{
+	margin:0px 10px 0px 10px;
+	clear:both;
+}
+/*------------------------------------------------------------------------------
+	一覧
+------------------------------------------------------------------------------*/
+#eventcard{
+	margin:0px auto 10px auto;
+	padding:20px 0px 20px 0px;
+	background:#E0E0E0;
+	border-radius:5px;
+	clear:both;
+}
+#eventcard ul{
+	margin:0px auto 0px auto;
+	padding:0px 0px 0px 0px;
+	position:relative;
+	list-style-type:none;
+}
+#eventcard .item{
+	margin:0px 0px 20px 0px;
+	width:286px;
+	background:#FFFFFF;
+	float:left;
+	border-bottom:2px solid #C0C0C0;
+	border-radius:4px;
+	-webkit-appearance:none;
+}
+#eventcard .item a{
+	padding-bottom:5px;
+	color:#222222;
+	text-decoration:none;
+	display:block;
+}
+#eventcard .item a:hover{
+    opacity:0.8;
+}
+#eventcard .item h3{
+	padding:12px 13px 5px 13px;
+	font-size:120%;
+	text-decoration:underline;
+	line-height:1.5;
+}
+#eventcard .item .catelist{
+	padding:0px 13px 5px 13px;
+	text-align:left;
+}
+#eventcard .item .catelist2{
+	padding:0px 13px 5px 13px;
+	text-align:right;
+}
+#eventcard .item .ecate{
+	margin:0px 5px 5px 0px;
+}
+#eventcard .item .catelist2 .ecate{
+	margin:0px 0px 5px 5px;
+}
+#eventcard .item .catelist2 .app1,
+#eventcard .item .catelist2 .app2,
+#eventcard .item .catelist2 .boshuend{
+	margin-left:1.8em;
+}
+#eventcard .item .thumb{
+	margin:0px 0px 13px 0px;
+	text-align:center;
+}
+#eventcard .item .thumb img{
+	max-width:260px;
+	height:auto;
+	vertical-align:bottom;
+}
+#eventcard .item p{
+	padding:0px 13px 10px 13px;
+	line-height:1.5;
+}
+#eventcard .item dl{
+	margin:0px 13px 10px 13px;
+	font-size:100%;
+}
+#eventcard .item dl::after{
+	content:"";
+	display:block;
+	clear:both;
+}
+#eventcard .item dt{
+	padding:3px 0px 3px 0px;
+	display:block;
+	color:#222222;
+	font-weight:bold;
+	vertical-align:top;
+	line-height:1.5;
+}
+#eventcard .item dd{
+	margin-bottom:7px;
+	display:inline-block;
+	vertical-align:top;
+	line-height:1.5;
+}
+#eventhide{
+	display:none;
+}
+/*------------------------------------------------------------------------------
+	件数
+------------------------------------------------------------------------------*/
+#eventcardbox .number{
+	padding-top:10px;
+	clear:both;
+}
+#eventcardbox .number p{
+	margin:0px 0px 5px 0px;
+	width:300px;
+	float:left;
+}
+#eventcardbox .number p em{
+	font-size:150%;
+	font-style:normal;
+	font-weight:bold;
+}
+/*------------------------------------------------------------------------------
+	並び替え
+------------------------------------------------------------------------------*/
+#eventorder{
+	margin:0px 0px 15px 0px;
+	width:100%;
+	background:#FFFFFF;
+}
+#eventorder h3{
+	padding:5px 25px 5px 10px;
+	position:relative;
+	font-size:100%;
+	background:#EEEEEE;
+}
+#eventorder ul{
+	width:100%;
+	display:table;
+	font-size:95%;
+	border:1px solid #CCCCCC;
+	list-style-type:none;
+	box-sizing:border-box;
+}
+#eventorder ul li{
+	display:table-cell;
+	border-left:1px solid #CCCCCC;
+	text-align:left;
+}
+#eventorder ul li:first-child{
+	border-left:none;
+}
+#eventorder ul li a{
+	padding:5px 3px 5px 20px;
+	display:block;
+	position:relative;
+}
+#eventorder em{
+	padding:5px 3px 5px 22px;
+	display:block;
+	position:relative;
+	font-style:normal;
+	font-weight:bold;
+}
+#eventorder ul li a::after,
+#eventorder ul li a:hover::after,
+#eventorder em::after{
+	content:"";
+	position:absolute;
+	left:7px;
+	top:0.9em;
+	border:5px solid transparent;
+}
+#eventorder ul li a::after{
+	border-left:7px solid #888888;
+}
+#eventorder ul li a:hover::after,
+#eventorder em::after{
+	border-top:7px solid #CB0000;
+}

@@ -1,0 +1,2328 @@
+<%# ━━━ ▼ ［T］リフレッシュテンプレート  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+<% ch1st = ["191_refresh"].include?(@page.template_code) && get_myfirst_page(my_id) %>
+<% if is_present(ch1st) && @system.is_snapshot? %>
+	<!DOCTYPE html>
+	<html lang="ja">
+	<head>
+	<meta charset="UTF-8">
+	<meta http-equiv="refresh" content="0;URL=<%= ch1st.access_path %>">
+	<title><%= @page.page_title %>｜<%= @site.site_title %></title>
+	</head>
+	<body>
+		<h1><%= @page.page_title %></h1>
+		<p>このページは以下のURLへ自動的に移動します。もし移動が開始しない場合は、次のURLをクリックしてください。<br><%= set_link(ch1st) %></p>
+	</body>
+	</html>
+<%# ━━━ ▲ ［T］リフレッシュテンプレート  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+<%# ━━━ ▼ ［T］HTML以外を出力するテンプレート（RSS、json、xmlなど）  ━━━━━━━━━━━━━━━ %>
+<% elsif ["903_rss","905_fest_date","907_map_search_data","908_kouhou_json","910_shinseishoxml","912_opendataxml","915_event_calendar_data","916_sitemapxml"].include?(@page.template_code) && @system.is_snapshot? %>
+<%
+ #◆施設、地図から探すの施設名から削除するキーワード【［TD］設定変更可能項目にも同一の項目あり】
+   @map_del_word = "施設案内"
+ %>
+<%= @page.render %>
+<% else %>
+<%# ━━━ ▲ ［T］HTML以外を出力するテンプレート（RSS、json、xmlなど）  ━━━━━━━━━━━━━━━ %>
+<%# ━━━ ▼ ［T］CGI用ヘッダフッタ判定   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+	<%# アンケートシステム用判定 %>
+	<% enq_temp =false %>
+	<% if (@page.template_code == "906_header_footer" && @page.peek("cgi_center_kind",0,"cgi").value == "cgi_enq_header") || (@page.template_code == "906_header_footer" && @page.peek("cgi_center_kind",0,"cgi").value == "cgi_enq_footer") %>
+		<% enq_temp = true %>
+	<% end %>
+	<%# アンケートシステム用ヘッダ判定 %>
+	<% enq_header =false %>
+	<% if (@page.template_code == "906_header_footer" && @page.peek("cgi_center_kind",0,"cgi").value == "cgi_enq_header") %>
+	    <% enq_header =true %>
+	<% end %>
+	<%# アンケートシステム用フッタ判定 %>
+	<% enq_footer =false %>
+	<% if (@page.template_code == "906_header_footer" && @page.peek("cgi_center_kind",0,"cgi").value == "cgi_enq_footer") %>
+	    <% enq_footer =true %>
+	<% end %>
+	<%# -------------------- %>
+	<%# オープンデータ用ヘッダ判定 %>
+	<% opd_header =false %>
+	<% if (@page.template_code == "906_header_footer" && @page.peek("cgi_center_kind",0,"cgi").value == "cgi_opendata_header") %>
+	    <% opd_header =true %>
+	<% end %>
+	<%# オープンデータ用フッタ判定 %>
+	<% opd_footer =false %>
+	<% if (@page.template_code == "906_header_footer" && @page.peek("cgi_center_kind",0,"cgi").value == "cgi_opendata_footer") %>
+	    <% opd_footer =true %>
+	<% end %>
+	<%# 申請書検索用ヘッダ判定 %>
+	<% dllist_header =false %>
+	<% if (@page.template_code == "906_header_footer" && @page.peek("cgi_center_kind",0,"cgi").value == "cgi_dllist_header") %>
+	    <% dllist_header =true %>
+	<% end %>
+	<%# 申請書検索用フッタ判定 %>
+	<% dllist_footer =false %>
+	<% if (@page.template_code == "906_header_footer" && @page.peek("cgi_center_kind",0,"cgi").value == "cgi_dllist_footer") %>
+	    <% dllist_footer =true %>
+	<% end %>
+<%# ━━━ ▲ ［T］CGI用ヘッダフッタ判定   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+<%#━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+<%# ［TD］DOCTYPE宣言							%>
+<%#━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+	<%# HTML5で生成 %>
+	<!DOCTYPE html>
+	<% xhtml(false) %>
+<%#━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+<%# ［TD］設定変更可能項目							%>
+<%#━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+<%# 下記項目はhelper内に設定しています。
+  # 外部リンク表示除外URL
+  # 外部リンク表示パターン設定（テンプレートコード）
+  #━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+<% 
+ # ━━━  ▼［D］ヘッダー、フッターリンク先設定  ━━━━━━━━━━━━━━━━━━━━━
+ # -- ▽ マスタ設定 ---------------------------------------------------------- 
+ #◆ヘッダメニュー
+   @top				= top_id   # トップページ
+   # 災害トップテンプレートの場合は@topの内容を変更
+   if ['752_saigaitop'].include?(@page.template_code)
+       @top				= @page.id   # 災害トップ
+   end
+   @top_url			= "https://#{outer_link_config_url[0]}/"   # トップページURL
+   @fontsize 		= 1000041  # 文字サイズ・配色の変更
+ # @mobile	 		= 1000039  # 携帯サイト
+ # @translation		= 1000045  # Foreign language 
+
+ #◆フッタメニュー
+ # @howtouse		= 1000117  # サイトの使い方
+
+ #◆トップページ
+ # @newslist		= 1000060  # 新着更新情報
+ # @rsslist	 		= 1000040  # RSS配信について
+   @howto_search	= 1000037  # 検索の使い方（Google）
+ # @howto_search	= 1000124  # 検索の使い方（Q'z）
+   @howto_idsearch	= 1000038  # ページ番号検索の使い方
+   @faq				= 1001521  # よくある質問
+ #◆子育て・健康・福祉
+   @shisetsu_icon	= 1000042  # バリアフリー対応状況：アイコンの説明
+   
+ #◆イベントカレンダー
+   @event_calendar  = 1001114  # イベントカレンダー
+ #◆イベント詳細ページ
+   @event_ical		= 1000049  # イベント情報をカレンダーに取り込む機能　ご利用にあたって
+
+ #◆マイページ
+ # @mypagehowto		= 1000048  # マイページ機能の使い方
+ # @mypagelist		= 1000047  # マイページ一覧
+
+ # -- ▽ 個別設定 ------------------------------------------------------------ 
+ #◆ヘッダメニュー
+   @searchmap		= 1000018  # 地図から探す
+   @searchresult	= 1000126  # サイト内検索　検索結果
+
+ #◆グローバルメニュー
+   @gnavi1			= 1000002  # くらし
+   @gnavi2			= 1000004  # 子育て・教育・文化
+   @gnavi3			= 1000003  # 健康づくり・福祉
+   @gnavi4			= 1004511  # 環境・まちづくり
+   @gnavi5			= 1000005  # 産業・ビジネス
+   @gnavi6			= 1000006  # 市政
+   @default_gnavi	=[@gnavi1,@gnavi2,@gnavi3,@gnavi4,@gnavi5,@gnavi6] 
+
+ #◆いざというときメニュー
+   @emenu1			= 1002100  # 防災・防犯情報のメール配信サービス
+   @emenu2			= 1002176  # 指定避難所及び指定待避所一覧
+   @emenu3			= 1001739  # 土砂災害・ハザードマップ
+   @emenu4			= 1002270  # 救急医療機関・休日当番医などの情報
+
+ #◆こども未来ガイド
+   @kodomo			= 1006710  # こども未来ガイド
+
+ #◆移住定住サイト
+   @iju				= 1004132  # 移住定住トップ
+   @iju_gnavi1		= 1005147  # お知らせ
+   @iju_gnavi2		= 1004271  # 暮らしを知る
+   @iju_gnavi3		= 1004272  # 住んでいる人の声
+   @iju_gnavi4		= 1005053  # 問い合わせ
+
+ #◆富弘美術館
+   @tomihiro		= 1004308  # 富弘美術館トップ
+   @tomihiro_gnavi1	= 1003354  # お知らせ・詩画展情報
+   @tomihiro_gnavi2	= 1004715  # 施設案内
+   @tomihiro_gnavi3	= 1004716  # 利用案内
+   @tomihiro_gnavi4	= 1004717  # 星野富弘について
+   @tomihiro_gnavi5	= 1004513  # 作品紹介
+
+ #◆みどり市岩宿博物館
+   @iwajuku			= 1004313  # みどり市岩宿博物館トップ
+   @iwajuku_gnavi1	= 1004727  # お知らせ・行事案内
+   @iwajuku_gnavi2	= 1004728  # 展示案内
+   @iwajuku_gnavi3	= 1004729  # 利用案内
+   @iwajuku_gnavi4	= 1003480  # 岩宿遺跡について
+   @iwajuku_gnavi5	= 1003477  # アクセス
+
+ #◆みどり市大間々博物館
+   @oomama			= 1004314  # みどり市大間々博物館トップ
+   @oomama_gnavi1	= 1004731  # お知らせ
+   @oomama_gnavi2	= 1004732  # 展示案内
+   @oomama_gnavi3	= 1003589  # 利用案内・交通案内
+   @oomama_gnavi4	= 1004734  # コノドント館について
+   
+ #◆フッター組織情報
+	@soshiki1		= 1001907  # 総務部
+	@soshiki2		= 1001908  # 市民部
+	@soshiki3		= 1001909  # 保健福祉部
+	@soshiki4		= 1001910  # 産業観光部
+	@soshiki5		= 1001911  # 都市建設部
+	@soshiki6		= 1001917  # 競艇事業局
+	@soshiki7		= 1004750  # 危機管理課
+	@soshiki8		= 1005016  # 東支所
+	@soshiki9		= 1004753  # 会計局
+	@soshiki10		= 1001913  # 教育委員会
+	@soshiki11		= 1004749  # 議会事務局
+	@soshiki12		= 1004751  # 監査委員事務局
+	@soshiki13		= 1004752  # 農業委員会事務局
+
+ #◆フッタアクセス
+   @access			= 1002993  # 交通アクセス
+   @linklist		= 1003042  # リンク集
+   @sitemap	 		= 1000059  # サイトマップ
+
+ #◆フッタメニュー
+   @policy			= 1003127  # プライバシーポリシー
+   @linklist		= 1003042  # リンク集
+   @sitemap	 		= 1000059  # サイトマップ
+
+
+ #◆トップページ
+ # @tkoukokulist	= 1000001 # バナー広告一覧
+ # @tkoukokuboshu	= 1000001 # バナー広告募集
+
+ # ━━━  ▼［T］テンプレートで使用  ━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ # -- ▽ マスタ設定 ---------------------------------------------------------- 
+ #◆オープンデータ
+  @opendata_top     = 1000079  # オープンデータトップ
+  @opendata_hf      = 1000087  # オープンデータCGIヘッダフッタ連携用リスト
+ 
+ #◆申請書ページ
+ # @shinsei_top      = 1001117 # 申請書検索トップ
+ # @shinsei_hf       = 1001118 # 申請書検索CGIヘッダフッタ連携用リスト
+ 
+ #◆災害情報設定
+   @saigai_smp		 = 1000103  # スマホ外部更新ページ（災害情報設定）
+
+ #◆メルマガ連携
+   @ml_detail		 = 1004524  # 防災メール情報
+   @ml_detail2		 = 1004525  # 防犯メール情報
+
+ # -- ▽ 個別設定 ------------------------------------------------------------ 
+ #◆セキュリティクラウド対応
+   @s_cloud_flg = false   #true：外部のサイトをプレビューで表示しない
+
+ #◆googleMapApiキー
+   #@gmapkey_cms = "&client=gme-futureinncoltd"                      # CMS用：FIがCMS内部用に取得済みのキー
+   @gmapkey_cms = "&key=AIzaSyDhc1QXvas_pAn6CXs90v-dlfflXu2xjDM"    # CMS用：FIがCMS内部用に取得済みのキー
+   @smapsec_cms = "A8GX2cgRIYbe8lZ44RA7D3UDZzc="                    # CMS用：FIがCMS内部用に取得済みのキーに付随するsecret（デジタル署名に使用）
+   @gmapkey_pub = "&key=AIzaSyDEuAdZwjQ6gQ9KugJnHXCGfQE7_Zmh7k4"    #公開用：お客様アカウントで設定したもの ※開発用：AIzaSyAOvUONviH7aoEsVXiLiEv4mfIhPjRQ1OQから変更すること！！！！！
+   @smapsec_pub = "DJFLVyQ1QIYOxmNDg3mJuh-039A="                    # CMS用：お客様アカウントで取得済みのキーに付随するsecret（デジタル署名に使用）※重量課金制を使用しない場合は空（""）でOK
+   @map_view_flg = true                                            # 静的マップを表示するかどうかを設定　true：マップ画像とリンクを表示　false:リンクのみ表示
+
+ #◆代替テキストを空とする判定文言
+   @null_comment = "代替テキストなし"
+
+ #◆施設、地図から探すの施設名から削除するキーワード【［T］HTML以外を出力するテンプレートにも同一の項目あり】
+   @map_del_word = "施設案内"
+
+ %>
+<%#━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+
+<% #◆キャッシュ　aとz %>
+<% if is_present(get_text_material_rp("t_cachepara",@page.id)) %>
+	<% @cachepara = @util.delete_crlf(@util.delete_tags(get_text_material_rp("t_cachepara",@page.id))) %>
+<% else %>
+    <% @cachepara = "?c" %>
+<% end %>
+
+<%# ━━━ ▼ ［T］災害情報設定ページ設定  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+<% saigai_smp = get_content(@saigai_smp) %>
+<%# ━━━ ▲ ［T］災害情報設定ページ設定  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+
+<%# ━━━ ▼ ［T］SNSボタン表示設定   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+<% 	sns = false
+	if is_present(@page.peek("page_header",0))
+		sns = true
+		if @page.peek("page_header",0,"sns").value.include?('1')
+			sns = false
+		end
+	elsif is_present(@page.peek("h_header",0))
+		sns = true
+		if @page.peek("h_header",0,"sns").value.include?('1')
+			sns = false
+		end
+	end
+%>
+<%# ------ ▽ ヘッダ・フッタ連携の場合はSNSボタン非表示 --------------------------------- %>
+<% if @page.template_code == "906_header_footer" %>
+    <% sns = false %>
+<% end %>
+<%# ━━━ ▲ ［T］SNSボタン表示設定   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+
+<%# ━━━ ▼ ［D］デザイン設定  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+<%# ------ ▽ 詳細ページのローカルナビ左右判定 ------------------------------------------ %>
+<% #◆ローカルナビ（trueは左）
+	lnavileft = false
+%>
+<%# ------ ▽ デザインパターンの定義 ---------------------------------------------------- %>
+<% #◆デザインとカラーを取得
+	@designptn = "design"
+	@colorptn = "color1"
+
+	if ["703_ijutop"].include?(@page.template_code) || first_id == @iju
+		@designptn = "iju"
+	end
+
+	if (["704_yakatatop"].include?(@page.template_code))
+		@designptn = "tomihiro"
+	end
+
+	if (["704_yakatatop"].include?(@page.template_code) && first_id == @tomihiro) || first_id == @tomihiro
+		@designptn = "tomihiro"
+	end
+
+	if (["704_yakatatop"].include?(@page.template_code) && first_id == @iwajuku) || first_id == @iwajuku
+		@designptn = "iwajuku"
+	end
+
+	if (["704_yakatatop"].include?(@page.template_code) && first_id == @oomama)  || first_id == @oomama
+		@designptn = "oomama"
+	end
+
+#	if is_present(get_content(top_id).page.common(5).plain)
+#		@designptn = get_content(top_id).page.common(5).plain.gsub(/_color(.+?)/,'')
+#		@colorptn = get_content(top_id).page.common(5).plain.gsub(/design(.+?)_/,'')
+#	end
+%>
+<%# ━━━ ▲ ［D］デザイン設定  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+
+<%# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+<%# アンケートも含めてHTML5で生成  %>
+<%# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+<%# ━━━ ▼ ［D］HTMLタグの設定  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+<html lang="ja">
+<head<% if @page.template_code != "906_header_footer" %> prefix="og: http://ogp.me/ns# fb: http://ogp.me/ns/fb# article: http://ogp.me/ns/article#"<% end %>>
+<%# ━━━ ▲ ［D］HTMLタグの設定  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+
+<%# ━━━ ▼ ［D］Googleアナリティクス  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+<% if @system.is_snapshot? %>
+	<% if is_present(get_text_material_rp("t_analytics",@page.id)) %>
+		<%= get_text_material_rp("t_analytics",@page.id) %>
+	<% end %>
+<% end %>
+<%# ━━━ ▲ ［D］Googleアナリティクス  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+
+<%# ━━━ ▼ Google タグマネージャー  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+<% if @system.is_snapshot? %>
+	<% if @page.common(5).list.include?('gtm_on') %>
+		<%= get_text_material_rp("t_gtm",@page.id) %>
+	<% end %>
+<% end %>
+<%# ━━━ ▲ Google タグマネージャー  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0,maximum-scale=2.0,user-scalable=yes">
+<meta name="format-detection" content="telephone=no">
+
+<%# ━━━ ▼ ［TD］ページタイトル ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+<title>
+<% if ["751_top","752_saigaitop"].include?(@page.template_code) %>
+	<%= @site.site_title %>
+<% else %>
+
+	<% if ['103_faq'].include?(@page.template_code) %>
+		よくある質問　
+	<% end %>
+
+	<% if enq_header %>
+		各課へのお問い合わせ
+	<% else %>
+		<%= @page.page_title %>
+	<% end %>
+
+	<% if first_id == @tomihiro %>
+		｜富弘美術館
+	<% elsif first_id == @iwajuku %>
+		｜みどり市岩宿博物館
+	<% elsif first_id == @oomama %>
+		｜みどり市大間々博物館
+	<% else %>
+		｜<%= @site.site_title %>
+	<% end %>
+<% end %>
+</title>
+<%# ━━━ ▲ ［TD］ページタイトル ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+
+<%# ━━━ ▼ ［D］metaタグの設定  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+<% if is_present(@page.memo) %>
+	<meta name="description" content="<%= @util.delete_tags(@page.memo.br) %>">
+<% end %>
+<meta name="keywords" content="みどり市公式サイト,みどり市,midori city<%= is_present(@page.common(3)) && is_present(@page.common(3).plain) ? ",#{@page.common(3).plain}" : '' %>">
+<%# ━━━ ▲ ［D］metaタグの設定  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+
+<%# ━━━ ▼ ［D］Googleサーチコンソール  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+<%# アンケートの場合は表示しない %>
+<% if !enq_temp %>
+    <% if @system.is_snapshot? %>
+    	<% if is_present(get_text_material_rp("t_searchconsole",@page.id)) %>
+    		<%= get_text_material_rp("t_searchconsole",@page.id) %>
+    	<% end %>
+    <% end %>
+<% end %>
+<%# ━━━ ▲ ［D］Googleサーチコンソール  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+
+<%# ///////// ［D］HTML5 IE対応用JS  -------------------------------------------------------- ///////// %>
+<!--[if lt IE 9]>
+	<script src="<%= site_template_path %>/_res/js/html5shiv-printshiv.min.js"></script>
+<![endif]-->
+
+<%# ━━━ ▼ OGP設定（Facebookなどで使用）  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+<%# ヘルパーが正しく設定されていない場合、facebook用設定も正しく表示されません %>
+<%# -- ▽ ［T］ヘッダ・フッタ連携では表示しない ----------------------------------------- %>
+<% if @page.template_code != "906_header_footer" %>
+	<%# -- ▽ ［D］OGP設定 -------------------------------------------------------------- %>
+	<% if @page.template_code == "751_top" %>
+		<%# トップ %>
+		<meta property="og:title" content="<%= @site.site_title %>">
+		<meta property="og:type" content="website">
+	<% else %>
+		<%# 通常 %>
+		<meta property="og:title" content="<%= @page.page_title %>｜<%= @site.site_title %>">
+		<meta property="og:type" content="article">
+	<% end %>
+	<meta property="og:description" content="<%= is_present(@page.memo) ? @page.memo : @site.site_title %>">
+	<meta property="og:url" content="https://<%= outer_link_config_url[0] + '/' + URI::escape(@page.access_path).gsub(/\.\/|\.\.\/|^\./){''} %>">
+	<meta name="twitter:card" content="summary">
+	<% if @system.is_snapshot? && is_present(@page.picture(5).access_path) %>
+		<meta property="og:image" content="<%= chg_full_path(@page.picture(5).access_path) %>">
+		<% if is_present(@page.picture(5).alt) %>
+			<meta name="twitter:image:alt" content="<%= @page.picture(5).alt %>">
+		<% end %>
+	<% else %>
+		<meta property="og:image" content="https://<%= outer_link_config_url[0] %>/_template_/_site_/_default_/_res/images/sns/ogimage.png">
+	<% end %>
+	<meta property="og:site_name" content="<%= @site.site_title %>">
+	<meta property="og:locale" content="ja_JP">
+<% end %>
+<%# ━━━ ▲ OGP設定（Facebookなどで使用）  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+
+<%# ====== ▼▼ 通常・発災時共通 ▼▼================================================================== %>
+<%# ///////// ［TD］jQuery読み込み  --------------------------------------------------------- ///////// %>
+<script src="<%= site_template_path %>/_res/js/jquery-3.5.1.min.js"></script>
+<%# ///////// ［D］トップメインビジュアル用プラグイン読み込み ------------------------------------------------- ///////// %>
+<% if ['751_top'].include?(@page.template_code) %>
+	<script src="<%= site_template_path %>/_res/js/jquery.bxslider.js"></script>
+	
+<% end %>
+<%# ///////// ［D］タブ用プラグイン読み込み ------------------------------------------------- ///////// %>
+<% if ['751_top'].include?(@page.template_code) %>
+	<script src="<%= site_template_path %>/_res/js/jquery-ui-1.13.2.min.js"></script>
+<% end %>
+<%# ///////// ［D］イベントカレンダー用プラグイン読み込み ----------------------------------- ///////// %>
+<% if @page.template_code == "915_event_calendar" %>
+	<script src="<%= site_template_path %>/_res/js/masonry.pkgd.min.js"></script>
+	<script src="<%= site_template_path %>/_res/js/imagesloaded.pkgd.min.js"></script>
+<% end %>
+
+<script>
+	//<!--
+	var FI = {};
+	FI.jQuery = jQuery.noConflict(true);
+	<%# -- ▽ ［D］スマホ用CSS ---------------------------------------------------------- %>
+	<% if @page.template_code == "752_saigaitop" %>
+		FI.smpcss = "<%= site_template_path %>/_res/<%= @designptn %>/default_saigai_smp.css<%= @cachepara %>";
+	<% else %>
+		FI.smpcss = "<%= site_template_path %>/_res/<%= @designptn %>/default_smp.css<%= @cachepara %>";
+	<% end %>
+	<% if @page.template_code == "751_top" || @page.template_code == "703_ijutop" || @page.template_code == "704_yakatatop" %>
+		FI.smpcss2 = "<%= site_template_path %>/_res/<%= @designptn %>/default_top_smp.css<%= @cachepara %>";
+	<% else %>
+		FI.smpcss2 = "<%= site_template_path %>/_res/dummy.css";
+	<% end %>
+	<%# -- ▽ ［T］Googleアナリティクスカスタムレポート --------------------------------- %>
+	<% if ads_banner_analytics? %>
+		FI.ads_banner_analytics = true;
+	<% end %>
+	<% if open_data_analytics? %>
+		FI.open_data_analytics = true;
+	<% end %>
+	<% if open_new_window? %>
+		FI.open_new_window = true;
+	<% end %>
+	//-->
+</script>
+
+<%# ///////// ［D］標準デザイン用JS  -------------------------------------------------------- ///////// %>
+<script src="<%= site_template_path %>/_res/js/smp.js<%= @cachepara %>"></script>
+<script src="<%= site_template_path %>/_res/js/common.js<%= @cachepara %>" defer></script>
+<script src="<%= site_template_path %>/_res/js/pagetop_fade.js" defer></script>
+<script src="<%= site_template_path %>/_res/js/articleall.js" async></script>
+<script src="<%= site_template_path %>/_res/js/dropdown_menu.js<%= @cachepara %>" defer></script>
+
+<% if ["701_generaltop"].include?(@page.template_code) %>
+	<script src="<%= site_template_path %>/_res/js/over.js" async></script>
+<% end %>
+
+<%# ///////// ［T］メルマガ連携用JS   ------------------------------------------------- ///////// %>
+<% if ['751_top','752_saigaitop'].include?(@page.template_code) %>
+	<script src="<%= site_template_path %>/_res/js/ml_top.js<%= @cachepara %>"></script>
+<% end %>
+<% if @page.id == @ml_detail %>
+	<script src="<%= site_template_path %>/_res/js/ml_detail.js<%= @cachepara %>"></script>
+<% end %>
+<% if @page.id == @ml_detail2 %>
+	<script src="<%= site_template_path %>/_res/js/ml_detail2.js<%= @cachepara %>"></script>
+<% end %>
+
+
+
+
+
+<%# ━━━ ▼ ［T］地図  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+<% map_flg = false %>
+<% if (["101_kihon","102_event","104_shisetsu"].include?(@page.template_code) && @page.area('map').parts.length ==1 && !use_static_map?) || ["105_shisetsu","907_map_search","171_csv_map"].include?(@page.template_code) %>
+    <% map_flg = true %>
+<% end %>
+
+<% if (["004_shisetsu"].include?(@page.template_code) && @page.area('page_info').parts.length > 0) %>
+    <% rayout_part = @page.peek('page_info',0,'rayout') %>
+    <% if rayout_part.value == '3' || rayout_part.value == '4' %>
+        <% map_flg = true %>
+    <% end %>
+<% end %>
+
+<% if !@system.is_edit? %>
+	<% if map_flg %>
+		<% if @system.is_snapshot? %>
+			<script src="https://maps.google.com/maps/api/js?sensor=false&region=jp<%= @gmapkey_pub %>"></script>
+		<% else %>
+            <%# セキュリティクラウド設定が有効の場合、スナップショット時以外は外部サイトに接続しない %>
+            <% if !@s_cloud_flg %>
+                <script src="https://maps.google.com/maps/api/js?sensor=false&region=jp<%= @gmapkey_cms %>"></script>
+            <% end %>
+		<% end %>
+		<% if @page.template_code == "907_map_search" %>
+            <%# 地図から探すテンプレート 条件絞込みに使用 %>
+	    	<script src="<%= site_template_path %>/_res/js/sqlike.js" defer></script>
+            <%# 地図から探すテンプレート 地図表示に使用 %>
+	    	<script src="<%= site_template_path %>/_res/js/pfmap.js" defer></script>
+            <%# 地図から探すテンプレート マップピン表示に使用 %>
+			<script>
+				<!--
+					FI.MAPICONPATH = "<%= template_path %>/_res/";
+				// -->
+			</script>
+		<% elsif @page.template_code == "171_csv_map" %>
+			<%# CSV複数施設マップテンプレート 地図表示に使用 %>
+			<script src="<%= site_template_path %>/_res/js/csv_map.js"></script>
+		<% else %>
+            <%# 基本、イベント、施設、施設(複数)、施設リスト(地図表示ありの場合)テンプレートに使用 %>
+	    	<script src="<%= site_template_path %>/_res/js/map.js"></script>
+    	<% end %>
+	<% end %>
+<% end %>
+<%# ━━━ ▲ ［T］地図  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+
+<%# ━━━ ▼ ［T］ヘッダ・フッダ連携 js   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+<% if opd_header || dllist_header %>
+	<% if @system.is_snapshot? %>
+		<script src="<%= site_template_path %>/_res/js/opd_form.js"></script>
+	<% end %>
+<% end %>
+<%# ━━━ ▲ ［T］ヘッダ・フッダ連携 js   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+
+<%# ///////// ［D］文字サイズ・配色変更用JS  ------------------------------------------------ ///////// %>
+<script src="<%= site_template_path %>/_res/js/fm_util.js" async></script>
+
+<%#  ━━━━━ アンケートシステム用のjs ━━━━━━━━━━━━━━━━━━━ %>
+<% if enq_header %>
+    <%# ///////// ［D］アンケートシステム用JS --------------------------------------------------- ///////// %>
+    <script src="<%= site_template_path %>/_res/js/enq/articleallpmbtn_enq.js"></script>
+<% end %>
+<%#  ━━━━━ アンケートシステム用のjs　 ここまで ━━━━━━━━━━━━━━━━━━━ %>
+
+<%# ///////// ［D］イベントカレンダー用JS --------------------------------------------------- ///////// %>
+<% if @page.template_code == "915_event_calendar" && @system.is_snapshot? %>
+	<% @area = @page.area('data_load') %>
+	<script>
+		//<!--
+			FI.CALENDER_URL = '<%= get_access_path(@event_calendar) %>';
+			FI.event_data_files = [];
+        	<% if @area.parts.length > 0 %>
+				<% @area.parts.each do |part| %>
+					<% if is_present(part['linkd1_1'].access_path) %>
+						FI.event_data_files.push('<%= part['linkd1_1'].access_path %>');
+					<% end %>
+				<% end %>
+        	<% end %>
+		//-->
+	</script>
+
+	<script src="<%= site_template_path %>/_res/js/event_calendar.js"></script>
+<% end %>
+
+<%# ///////// ［T］広報紙掲載依頼 js  ------------------------------------------------------- ///////// %>
+<% if @page.template_code == "909_kouhou_keisai" %>
+    <% unless @system.is_snapshot? %>
+        
+        <%# 広報データ出力テンプレートに使用 %>
+        <script src="<%= site_template_path %>/_res/js/kouhou_keisai.js" async></script>
+        
+    <% end %>
+<% end %>
+<%# ====== ▲▲ 通常・発災時共通 ▲▲ ================================================================= %>
+
+<%# ====== ▼▼ 発災時・通常時別設定  ▼▼ ============================================================ %>
+<% if @page.template_code == "752_saigaitop" %>
+	<%# ====== ▽▽ 発災時のみ ▽▽ =================================================================== %>
+	<%# ///////// ［D］災害用CSS  ----------------------------------------------------------- ///////// %>
+	<link class="pconly" id="cmncss" href="<%= site_template_path %>/_res/<%= @designptn %>/default_saigai.css" rel="stylesheet" type="text/css">
+<% else %>
+	<%# ====== ▽▽ 通常時のみ ▽▽ =================================================================== %>
+	<%# ///////// ［D］デフォルト読み込みCSS  ----------------------------------------------- ///////// %>
+	<link id="cmncss" href="<%= site_template_path %>/_res/<%= @designptn %>/default.css<%= @cachepara %>" rel="stylesheet" type="text/css" class="pconly">
+	<%# ///////// ［D］大きな文字で印刷CSS  ----------------------------------------------- ///////// %>
+	<link id="printcss" href="<%= site_template_path %>/_res/print_dummy.css" rel="stylesheet" type="text/css" class="pconly">
+
+	<%# ====== ▽▽ 通常トップ・移住定住トップ・館トップの場合 ▽▽ ================================================= %>
+	<% if ["751_top","703_ijutop","704_yakatatop"].include?(@page.template_code) %>
+
+		<%# ///////// ［D］トップページ用CSS  ------------------------------------------- ///////// %>
+		<link class="pconly" href="<%= site_template_path %>/_res/<%= @designptn %>/default_top.css<%= @cachepara %>" rel="stylesheet" type="text/css">
+
+		<%# スクロールバナーエリアに使用 %>
+		<script src="<%= site_template_path %>/_res/js/topics_menu.js"></script>
+		<script src="<%= site_template_path %>/_res/js/topics_menu_auto.js"></script>
+		
+		<%# ====== ▽▽ トップテンプレートのみ ▽▽ =================================================== %>
+		<% if @page.template_code == "751_top" %>
+
+			<%# ///////// ［D］トップメインビジュアル用CSS  ------------------------------------------- ///////// %>
+	        <link href="<%= site_template_path %>/_res/<%= @designptn %>/jquery.bxslider.css<%= @cachepara %>" rel="stylesheet">
+			<script src="<%= site_template_path %>/_res/js/top_mainvisual.js"></script>
+			
+			<%# ///////// ［D］トップテンプレートで使用  ------------------------------------ ///////// %>
+			<%# タブ用JS %>
+			<script src="<%= site_template_path %>/_res/js/tabs.js" defer></script>
+            <%# ページID検索エリアに使用 %>
+			<script src="<%= site_template_path %>/_res/js/id.js" async></script>
+
+		<% end %>
+		<%# ====== △△ トップテンプレートのみ △△ =================================================== %>
+		
+		<%# ====== ▽▽ 移住定住トップテンプレートのみ ▽▽ =================================================== %>
+		<% if @page.template_code == "703_ijutop" %>
+			<%# メイン動画に使用 %>
+			<script src="<%= site_template_path %>/_res/js/video_btn.js"></script>
+			<%# インスタグラム写真エリアに使用 %>
+			<script src="<%= site_template_path %>/_res/js/photostudio.js"></script>
+			<%# googleフォント %>
+			<link rel="preconnect" href="https://fonts.googleapis.com">
+			<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+			<link href="https://fonts.googleapis.com/css2?family=BIZ+UDPMincho&family=Marcellus&family=Shippori+Mincho+B1&display=swap" rel="stylesheet">
+		<% end %>
+		<%# ====== △△ 移住定住トップテンプレートのみ △△ =================================================== %>
+
+		<%# ====== ▽▽ 館トップテンプレートのみ ▽▽ =================================================== %>
+		<% if @page.template_code == "704_yakatatop" %>
+			<%# googleフォント %>
+			<link rel="preconnect" href="https://fonts.googleapis.com">
+			<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+			<link href="https://fonts.googleapis.com/css2?family=Zen+Old+Mincho:wght@400;600&display=swap" rel="stylesheet">
+		<% end %>
+		<%# ====== △△ 館トップテンプレートのみ △△ =================================================== %>
+
+	<% end %>
+	<%# ====== △△ 通常トップ・移住定住トップ・館トップの場合 △△ ================================================= %>
+
+	<%# ====== ▽▽ 通常トップ・汎用トップ・セカンドトップの場合 ▽▽ ================================================= %>
+	<% if ["751_top","701_generaltop","702_secondtop"].include?(@page.template_code) %>
+
+		<%# 【右】バナー広告（ランダム）エリアに使用 %>
+		<script src="<%= site_template_path %>/_res/js/banner.js"></script>
+
+		<%# ━━━ ▼ ［T］バナー広告エリアをランダム表示にする場合、使用  ━━━━━━━━━━━━━━ %>
+		<% if @page.area('top_ads').parts.length > 2 %>
+			<% if @page.peek("top_ads",0).name == 'cmn_display' && @page.peek("top_ads",0,"display_view").value == '1' %>
+				<% if @page.peek("top_ads",1).name == 'random_switch' && @page.peek("top_ads",1,"random_switch").value == '2' %>
+					<%# トップテンプレート バナー広告エリアに使用(G) ------------ %>
+					<script src="<%= site_template_path %>/_res/js/ads_randam.js" defer></script>
+				<% end %>
+			<% end %>
+		<% end %>
+		<%# ━━━ ▲ ［T］バナー広告エリアをランダム表示にする場合、使用  ━━━━━━━━━━━━━━ %>
+
+	<% end %>
+	<%# ====== △△ 通常トップ・汎用トップ・セカンドトップの場合 △△ ================================================= %>
+
+<% end %>
+<%# ====== ▲▲ 発災時・通常時別設定 ▲▲ ============================================================= %>
+
+<%# ====== ▼▼ 通常・発災時共通 ▼▼ ================================================================= %>
+<%# ///////// ［D］配色変更用CSS  ----------------------------------------------------------- ///////// %>
+<link id="bgcss" href="<%= site_template_path %>/_res/dummy.css" rel="stylesheet" type="text/css" class="pconly">
+<script> 
+	//<!--
+	var bgcss1 = "<%= site_template_path %>/_res/a.css";
+	var bgcss2 = "<%= site_template_path %>/_res/b.css";
+	var bgcss3 = "<%= site_template_path %>/_res/c.css";
+	var bgcss4 = "<%= site_template_path %>/_res/dummy.css";
+	// -->
+</script>
+
+<%# ━━━ ▼ ［T］イベントスマホ取り込み  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+<% if @page.template_code == "102_event" %>
+	<script>
+		(function(){
+		var $ = FI.jQuery;
+		$(document).ready(function(){
+		$('#connect').click(function(e){
+		window.open("https://<%= outer_link_config_url[0] %>/cgi-evt/a-callendar.cgi", 'ConnectWithOAuth', 'location=1,status=1,scrollbars=1,resizable=1,width=550,height=700');
+		<%# window.open後にフォームのsubmit処理が行われないようにイベントをキャンセルする %>
+		return e.preventDefault();
+		});
+		});
+		})();
+	</script>
+<% end %>
+<%# ━━━ ▲ ［T］イベントスマホ取り込み  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+
+<%# ///////// ［TD］CMS内の表示用css  ------------------------------------------------------- ///////// %>
+<% if !@system.is_snapshot? %>
+	<link href="<%= site_template_path %>/_res/cms.css" rel="stylesheet" type="text/css">
+	<% if @system.is_edit? %>
+		<script src="<%= site_template_path %>/_res/js/cms_edit.js"></script>
+	<% end %>
+<% end %>
+
+<%# ///////// ［D］ファビコン、ウェブクリップアイコン  -------------------------------------- ///////// %>
+<link rel="apple-touch-icon-precomposed" href="<%= site_template_path %>/_res/images/apple-touch-icon-precomposed.png">
+<link rel="shortcut icon" href="<%= site_template_path %>/_res/favicon.ico" type="image/vnd.microsoft.icon">
+<link rel="icon" href="<%= site_template_path %>/_res/favicon.ico" type="image/vnd.microsoft.icon">
+
+<%# ///////// ［T］アンケートシステム  ------------------------------------------------------ ///////// %>
+<% if enq_header %>
+    <!-- アンケートシステム用スクリプト読込タグ -->
+    <script src="https://ajaxzip3.github.io/ajaxzip3.js" charset="UTF-8"></script>
+    <script src="<%= site_template_path %>/_res/js/enq/jquery-1.11.3.min.js"></script>
+    <script src="<%= site_template_path %>/_res/js/enq/jquery-ui-1.11.4.custom/jquery-ui.min.js"></script>
+    <link href="<%= site_template_path %>/_res/js/enq/jquery-ui-1.11.4.custom/jquery-ui.min.css" rel="stylesheet" type="text/css">
+    <script src="../cgi-bin/js/app.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/4.2.8/d3.min.js"></script>
+    <link href="../cgi-bin/css/graph.css" rel="stylesheet" type="text/css">
+    <link href="../cgi-bin/css/form.css" rel="stylesheet" type="text/css">
+    <!-- アンケートシステム用スクリプト読込タグ -->
+<% end %>
+
+<%# ━━━ ▼ ［T］HTMLテンプレート  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+<% if ['190_html'].include?(@page.template_code) && (@system.is_snapshot? || @system.is_preview?) %>
+	<% ix = 0 %>
+	<% n = @page.peek('js').parts.length %>
+	<% 0.upto(n) do |ix| %>
+		<% if ix < n %>
+			<% js_file = @page.peek('js',ix,'linko') %>
+			<% if is_present(js_file) %>
+				<script src="<%= js_file.access_path %>"></script>
+			<% end %>
+		<% end %>
+	<% end %>
+<% end %>
+<%# ━━━ ▲ ［T］HTMLテンプレート  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+
+<%# ━━━ ▼ ［T］ごみ検索テンプレート  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+<% if @page.template_code == "161_gomi_division" %><%# ごみ分別 %>
+	<script src="<%= site_template_path %>/_res/js/gomi_divide.js"></script>
+	<% if false %>
+    	<script src="<%= site_template_path %>/_res/js/smp_gtest2.js"></script>
+    	<script src="<%= site_template_path %>/_res/js/smp_gtest.js"></script>
+    <% end %>
+	<script src="<%= site_template_path %>/_res/js/default.js"></script>
+<% end %>
+<%# ━━━ ▲ ［T］ごみ検索テンプレート  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+
+<%# ━━━ ▼ ［T］トップ、汎用トップ、イベントポータル　カルーセルパネル用  ━━━━━━━━━━━━━━━━━━━━━━ %>
+<% if ['751_top','701_generaltop'].include?(@page.template_code) %>
+    <% slider_name = '' %>
+    <% slider_parts = '' %>
+    <% if ['701_generaltop'].include?(@page.template_code) %>
+        <% if @page.peek('subtop_slider_link').parts.length > 0 %>
+            <% slider_name = @page.peek('subtop_slider_link',0).name %>
+            <% slider_parts = get_parts(@page.peek('subtop_slider_link'),slider_name) %>
+        <% end %>
+    <% elsif ['751_top'].include?(@page.template_code) %>
+        <% if @page.peek('top_slider_link').parts.length > 1 %>
+            <% if @page.peek('top_slider_link',0).name == 'cmn_display' && @page.peek('top_slider_link',0,'display_view').value == '1' %>
+                <% slider_name = @page.peek('top_slider_link',1).name %>
+                <% slider_parts = get_parts(@page.peek('top_slider_link'),slider_name) %>
+            <% end %>
+        <% end %>
+    <% end %>
+    <% if is_present(slider_name) %>
+        <%# 2件以上パーツがある場合だけjsを読み込み %>
+        <% if slider_parts.length > 1 %>
+            <% if slider_name == 'top_sliderlink1' %>
+    			<%# ///////// ［D］カルーセルパネルA：画像のみ  --------------------------------- ///////// %>
+                <%# パーツがあっても非表示の可能性があるため、表示されるパーツが2件以上ある場合のみjs読み込み %>
+                <% part_cnt = 0 %>
+                <% slider_parts.each do |sl_part| %>
+        			<% view_flg = false %>
+                    <% if is_present(sl_part['start_date']) %>
+                    <%#-- 開始日ありの場合 %>
+                        <%#-- 本日が開始日以上の場合 %>
+                        <% if @system.target_date_raw.format("%Y/%m/%d") >= sl_part['start_date'].format('%Y/%m/%d') %>
+                            <% if is_present(sl_part['end_date']) %>
+                                <%#-- 終了日ありの場合 %>
+                                <%#-- 本日が終了日以下の場合 %>
+                                <% if @system.target_date_raw.format("%Y/%m/%d") <= sl_part['end_date'].format('%Y/%m/%d') %>
+                                    <% view_flg = true %>
+                                <% end %>
+                            <% else %>
+                                <%#-- 終了日なしの場合 %>
+                                <% view_flg = true %>
+                            <% end %>
+                        <% end %>
+                    <% else %>
+                    <%#-- 開始日なしの場合 %>
+                        <% if is_present(sl_part['end_date']) %>
+                            <%#-- 終了日ありの場合 %>
+                            <%#-- 本日が終了日以下の場合 %>
+                            <% if @system.target_date_raw.format("%Y/%m/%d") <= sl_part['end_date'].format('%Y/%m/%d') %>
+                                <% view_flg = true %>
+                            <% end %>
+                        <% else %>
+                            <%#-- 終了日なしの場合 %>
+                            <% view_flg = true %>
+                        <% end %>
+                    <% end %>
+                    <% if view_flg %>
+                        <% part_cnt = part_cnt + 1 %>
+                    <% end %>
+                <% end %>    			
+                <% if part_cnt > 1 %>
+                    <script src="<%= site_template_path %>/_res/js/scroll_menu_a.js" defer></script>
+                <% end %>    			
+            <% elsif slider_name == 'top_sliderlink2' %>
+    			<%# ///////// ［D］カルーセルパネルB：画像＋テキスト  --------------------------- ///////// %>
+                <%# パーツがあっても非表示の可能性があるため、表示されるパーツが2件以上ある場合のみjs読み込み %>
+                <% part_cnt = 0 %>
+                <% slider_parts.each do |sl_part| %>
+        			<% view_flg = false %>
+                    <% if is_present(sl_part['start_date']) %>
+                    <%#-- 開始日ありの場合 %>
+                        <%#-- 本日が開始日以上の場合 %>
+                        <% if @system.target_date_raw.format("%Y/%m/%d") >= sl_part['start_date'].format('%Y/%m/%d') %>
+                            <% if is_present(sl_part['end_date']) %>
+                                <%#-- 終了日ありの場合 %>
+                                <%#-- 本日が終了日以下の場合 %>
+                                <% if @system.target_date_raw.format("%Y/%m/%d") <= sl_part['end_date'].format('%Y/%m/%d') %>
+                                    <% view_flg = true %>
+                                <% end %>
+                            <% else %>
+                                <%#-- 終了日なしの場合 %>
+                                <% view_flg = true %>
+                            <% end %>
+                        <% end %>
+                    <% else %>
+                    <%#-- 開始日なしの場合 %>
+                        <% if is_present(sl_part['end_date']) %>
+                            <%#-- 終了日ありの場合 %>
+                            <%#-- 本日が終了日以下の場合 %>
+                            <% if @system.target_date_raw.format("%Y/%m/%d") <= sl_part['end_date'].format('%Y/%m/%d') %>
+                                <% view_flg = true %>
+                            <% end %>
+                        <% else %>
+                            <%#-- 終了日なしの場合 %>
+                            <% view_flg = true %>
+                        <% end %>
+                    <% end %>
+                    <% if view_flg %>
+                        <% part_cnt = part_cnt + 1 %>
+                    <% end %>
+                <% end %>    			
+                <% if part_cnt > 1 %>
+                    <script src="<%= site_template_path %>/_res/js/scroll_menu_b.js" defer></script>
+                <% end %>
+           <% end %>
+       <% end %>
+    <% end %>
+<% end %>
+<%# ━━━ ▲ ［T］トップ、汎用トップ　カルーセルパネル用  ━━━━━━━━━━━━━━━━━━━━━━ %>
+
+<%# ====== ▲▲ 通常・発災時共通 ▲▲ ================================================================= %>
+</head>
+
+<body>
+
+<%# ━━━ ▼ Google タグマネージャー  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+<% if @system.is_snapshot? %>
+	<% if @page.common(5).list.include?('gtm_on') %>
+		<%= get_text_material_rp("t_gtm_noscript",@page.id) %>
+	<% end %>
+<% end %>
+<%# ━━━ ▲ Google タグマネージャー  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+
+<%# ━━━ ▼ ［D］facebookシェアボタン  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+<% if sns && @system.is_snapshot? %>
+	<%# SNSフラグがtureかつスナップショット時に出力 %>
+	<%= get_text_material_rp("t_sitesnsbutton",@page.id) %>
+<% end %>
+<%# ━━━ ▲ ［D］facebookシェアボタン  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+
+<%# ━━━ ▼ ［T］CMS内機能ボタンエリア   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+<% if !@system.is_snapshot? %>
+
+	<div class="viewmode">
+		<dl>
+			<dt>表示</dt>
+			<dd>
+				<ul>
+					<li><a href="javascript:void(0)" id="viewmode_pc">PC</a></li>
+					<li><a href="javascript:void(0)" id="viewmode_smp">スマートフォン</a></li>
+				</ul>
+			</dd>
+		</dl>
+	<%# <!-- ▲▲▲ END viewmode ▲▲▲ --> %></div>
+<p class="cmsprint">
+	<%# -- ▽ 通常／災害 災害情報設定ページリンク ------------------------------------------------ %>
+	<% if ['751_top','752_saigaitop'].include?(@page.template_code) && is_present(@saigai_smp) %>
+		<% if @system.is_preview? %>
+			<span style="background-color: #FFFFFF; margin: 5px; padding: 5px; border: 1px solid #CCCCCC"><a href="<%= get_access_path(@saigai_smp) %>" title="［通常／災害］災害情報設定は、ページID：<%= @saigai_smp %>で設定します。">［通常／災害］災害情報設定 ▶ ID： <%= @saigai_smp %></a></span>
+		<% else %>
+			<span style="background-color: #FFFFFF; margin: 5px; padding: 5px; border: 1px solid #CCCCCC">［通常／災害］災害情報設定 ▶ ID： <%= @saigai_smp %></span>
+		<% end %>
+	<% end %>
+	<%# -- ▽ グレースケール・テキスト表示 ---------------------------------------------- %>
+	<% if @system.is_preview? %>
+		<script src="<%= site_template_path %>/_res/js/grayscale.js" defer></script>
+		<input type="button" value="グレースケール表示" id="grayscale-on"  onclick="grayscale(document.getElementsByTagName('body'));FI.jQuery('#grayscale-off,#grayscale-on').toggle();" />
+		<input type="button" value="グレースケール表示 解除" id="grayscale-off" style="display: none;" onclick="grayscale.reset(document.getElementsByTagName('body'));FI.jQuery('#grayscale-off,#grayscale-on').toggle();" />
+		<script src="<%= site_template_path %>/_res/js/text.js" defer></script>
+		<input type="button" value="テキスト表示" id="textmode-on"  />
+		<input type="button" value="テキスト表示 解除" style="display: none;" id="textmode-off" />
+	<% end %>
+	<%# -- ▽ 代替テキスト表示 ---------------------------------------------- %>
+	<% if !@system.is_snapshot? %>
+		<script src="<%= site_template_path %>/_res/js/alt_display.js" defer></script>
+		<script>
+			<!--
+				FI.PAGE_ID = "<%= @page.id %>";
+			// -->
+		</script>
+		<input type="button" value="代替テキスト表示" id="alt_display-on"  />
+		<input type="button" value="代替テキスト表示 解除" style="display: none;" id="alt_display-off" />
+	<% end %>
+	<%# -- ▽ CMS内印刷ボタン ----------------------------------------------------------- %>
+	<input type="button" value="このページを印刷する" onclick="window.print();return false;" />
+</p>
+<% end %>
+<%# ━━━ ▲ ［T］CMS内機能ボタンエリア   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+
+<%# ━━━ ▼ ［D］noscript  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+<noscript>
+<p class="scriptmessage">当ホームページではjavascriptを使用しています。 javascriptの使用を有効にしなければ、一部の機能が正確に動作しない恐れがあります。お手数ですがjavascriptの使用を有効にしてください。</p>
+</noscript>
+<%# ━━━ ▲ ［D］noscript  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+
+<%# ━━━ ▼ ［D］CMS内スマホ表示枠   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+<% if !@system.is_snapshot? %>
+	<div class="cmswrap<%= @system.is_edit? && ['751_top','752_saigaitop','701_generaltop','703_ijutop','704_yakatatop','753_faqtop','754_opendatatop'].include?(@page.template_code) ? ' editmode' : '' %>">
+<% end %>
+<%# ━━━ ▲ ［D］CMS内スマホ表示枠   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+
+<%# ━━━ ▼ ［D］全体包括div開始 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+<%# サブサイトトップの場合、wrapのdivにクラスを追加 %>
+<% subtop_class ="" %>
+<% if @designptn == "iju" %>
+    <% subtop_class ="iju" %>
+<% elsif @designptn == "tomihiro" %>
+    <% subtop_class ="tomihiro" %>
+<% elsif @designptn == "iwajuku" %>
+    <% subtop_class ="iwajuku" %>
+<% elsif @designptn == "oomama" %>
+    <% subtop_class ="oomama" %>
+<% end %>
+
+<div id="wrapbg">
+<% if @page.template_code == "752_saigaitop" %>
+    <div id="wrap" class="saigai">
+<% else %>
+    <div id="wrap"<%= is_present(subtop_class) ? " class=\"#{subtop_class}\"" : "" %>>
+<% end %>
+<%# ━━━ ▲ ［D］全体包括div開始 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+
+<%# ━━━ ▼ ［D］ヘッダー  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+<% if ['751_top','752_saigaitop','703_ijutop','704_yatakatop'].include?(@page.template_code) %>
+	<%# トップページ %>
+	<header id="topheaderbg" role="banner" class="fadeDown">
+<% else %>
+	<%# 通常 %>
+	<header id="headerbg" role="banner" class="fadeDown">
+<% end %>
+
+	<div id="blockskip" class="pconly"><a href="#HONBUN">エンターキーを押すと、ナビゲーション部分をスキップし本文へ移動します。</a></div>
+	<div id="header">
+
+		<% if !['703_ijutop'].include?(@page.template_code) %>
+			<div id="tlogo">
+				<% if ['751_top'].include?(@page.template_code) %>
+					<%# トップページ %>
+					<% if @system.is_snapshot? %>
+						<h1><a href="<%= @top_url %>"><img src="<%= site_template_path %>/_res/<%= @designptn %>/images/header/tlogo.png" alt="みどり市公式サイトトップページ" width="181" height="63"></a></h1>
+					<% else %>
+						<h1><a href="<%= get_access_path(@top) %>"><img src="<%= site_template_path %>/_res/<%= @designptn %>/images/header/tlogo.png" alt="みどり市公式サイトトップページ" width="181" height="63"></a></h1>
+					<% end %>
+				<% elsif ['752_saigaitop'].include?(@page.template_code)%>
+					<%# 災害トップ %>
+					<% if @system.is_snapshot? %>
+						<h1><a href="<%= @top_url %>">みどり市公式サイト</a></h1>
+					<% else %>
+						<h1><a href="<%= get_access_path(@page.id) %>">みどり市公式サイト</a></h1>
+					<% end %>
+				<% elsif @designptn == "iju" %>
+					<%# 移住配下ページ %>
+					<p><a href="<%= get_access_path(@iju) %>"><img src="<%= site_template_path %>/_res/<%= @designptn %>/images/header/tlogo.png" alt="みどり市移住定住ポータルサイト" width="242" height="69"></a></p>
+				<% elsif @designptn == "tomihiro" %>
+					<%# 富弘配下ページ %>
+					<p><a href="<%= get_access_path(@tomihiro) %>"><img src="<%= site_template_path %>/_res/<%= @designptn %>/images/header/tlogo.png?a" alt="富弘美術館" width="171" height="63"></a></p>
+				<% elsif @designptn == "iwajuku" %>
+					<%# 岩宿配下ページ %>
+					<p><a href="<%= get_access_path(@iwajuku) %>"><img src="<%= site_template_path %>/_res/<%= @designptn %>/images/header/tlogo.png?a" alt="岩宿博物館" width="245" height="70"></a></p>
+				<% elsif @designptn == "oomama" %>
+					<%# 大間々配下ページ %>
+					<p><a href="<%= get_access_path(@oomama) %>"><img src="<%= site_template_path %>/_res/<%= @designptn %>/images/header/tlogo.png?a" alt="コノドント館　みどり市大間々博物館" width="248" height="70"></a></p>
+
+				<% else %>
+					<%# 通常 %>
+					<% if @system.is_snapshot? %>
+						<p><a href="<%= @top_url %>"><img src="<%= site_template_path %>/_res/<%= @designptn %>/images/header/tlogo.png" alt="みどり市公式サイト" width="181" height="63"></a></p>
+					<% else %>
+						<p><a href="<%= get_access_path(@top) %>"><img src="<%= site_template_path %>/_res/<%= @designptn %>/images/header/tlogo.png" alt="みどり市公式サイト" width="181" height="63"></a></p>
+					<% end %>
+				<% end %>
+			<%# <!-- ▲▲▲ END tlogo ▲▲▲ --> %></div>
+		<% end %>
+
+		
+		<% if @designptn == "iju" %>
+			<%# ━━━ ▼ ［D］移住ハンバーガーメニュー ━━━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+					<div id="smpmenup5bg" class="smpmenup">
+    					<div id="smpmenup5" class="bmenu">
+    						<button class="hnmenu" aria-expanded="false" aria-controls="smpmenup5menu"><span>MENU</span></button>
+    						<div id="smpmenup5menu" class="openmenu" aria-hidden="true">
+
+								<div id="util">
+									<div id="util2">
+										<div class="selectlang">
+											<form>
+												<select name="lang" onchange="location.href=value;" title="language choice">
+													<option value="#" lang="en">Select Language</option>
+													<option value="https://translate.google.com/translate?hl=ja&amp;sl=ja&amp;tl=en&amp;u=https://<%= outer_link_config_url[0] + '/' + URI::escape(@page.access_path).gsub(/\.\/|\.\.\/|^\./){''} %>" lang="en">English</option>
+													<option value="https://translate.google.com/translate?hl=ja&amp;sl=ja&amp;tl=zh-CN&amp;u=https://<%= outer_link_config_url[0] + '/' + URI::escape(@page.access_path).gsub(/\.\/|\.\.\/|^\./){''} %>" lang="zh-CN">中文（簡体）</option>
+													<option value="https://translate.google.com/translate?hl=ja&amp;sl=ja&amp;tl=zh-TW&amp;u=https://<%= outer_link_config_url[0] + '/' + URI::escape(@page.access_path).gsub(/\.\/|\.\.\/|^\./){''} %>" lang="zh-TW">中文（繁體）</option>
+													<option value="https://translate.google.com/translate?hl=ja&amp;sl=ja&amp;tl=ko&amp;u=https://<%= outer_link_config_url[0] + '/' + URI::escape(@page.access_path).gsub(/\.\/|\.\.\/|^\./){''} %>" lang="ko">Korean</option>
+													<option value="https://translate.google.com/translate?hl=ja&amp;sl=ja&amp;tl=vi&amp;u=https://<%= outer_link_config_url[0] + '/' + URI::escape(@page.access_path).gsub(/\.\/|\.\.\/|^\./){''} %>" lang="vi">Vietnamese</option>
+													<option value="https://translate.google.com/translate?hl=ja&amp;sl=ja&amp;tl=fr&amp;u=https://<%= outer_link_config_url[0] + '/' + URI::escape(@page.access_path).gsub(/\.\/|\.\.\/|^\./){''} %>" lang="fr">French</option>
+													<option value="https://translate.google.com/translate?hl=ja&amp;sl=ja&amp;tl=it&amp;u=https://<%= outer_link_config_url[0] + '/' + URI::escape(@page.access_path).gsub(/\.\/|\.\.\/|^\./){''} %>" lang="it">Italian</option>
+													<option value="https://translate.google.com/translate?hl=ja&amp;sl=ja&amp;tl=de&amp;u=https://<%= outer_link_config_url[0] + '/' + URI::escape(@page.access_path).gsub(/\.\/|\.\.\/|^\./){''} %>" lang="de">German</option>
+													<option value="https://translate.google.com/translate?hl=ja&amp;sl=ja&amp;tl=pt&amp;u=https://<%= outer_link_config_url[0] + '/' + URI::escape(@page.access_path).gsub(/\.\/|\.\.\/|^\./){''} %>" lang="pt">Portuguese</option>
+													<option value="https://translate.google.com/translate?hl=ja&amp;sl=ja&amp;tl=es&amp;u=https://<%= outer_link_config_url[0] + '/' + URI::escape(@page.access_path).gsub(/\.\/|\.\.\/|^\./){''} %>" lang="es">Spanish</option>
+												</select>
+											</form>
+										</div>
+										<ul>
+											<li class="sizecolor pconly"><a href="<%= get_access_path(@fontsize) %>">文字サイズ・配色の変更</a></li>
+										</ul>
+									<%# <!-- ▲▲▲ END util2 ▲▲▲ --> %></div>
+									<div id="sitesearch">
+										<% if @system.is_snapshot? %>
+											<% if is_present(get_text_material_rp("t_search",@page.id)) %>
+												<%= get_text_material_rp("t_search",@page.id) %>
+											<% end %>
+										<% else %>
+											<form role="search" id="cse-search-box" action="<%= get_access_path(@searchresult) %>">
+											<label for="key">サイト内検索</label>
+											<input type="text" name="q" size="20" id="key" value="" title="サイト内検索">
+											<input type="submit" value="検索">
+											</form>
+										<% end %>
+									<%# <!-- ▲▲▲ END sitesearch ▲▲▲ --> %></div>
+								<%# <!-- ▲▲▲ END util ▲▲▲ --> %></div>
+												
+								<nav id="topgnavibg" role="navigation" aria-label="メインメニュー">
+									<div id="gnavi">
+										<ul>
+											<li><a href="<%= get_access_path(@iju_gnavi1) %>"><%= get_content(@iju_gnavi1).page_title %></a></li>
+											<li><a href="<%= get_access_path(@iju_gnavi2) %>"><%= get_content(@iju_gnavi2).page_title %></a></li>
+											<li><a href="<%= get_access_path(@iju_gnavi3) %>"><%= get_content(@iju_gnavi3).page_title %></a></li>
+											<li><a href="<%= get_access_path(@iju_gnavi4) %>"><%= get_content(@iju_gnavi4).page_title %></a></li>
+										</ul>
+									<%# <!-- ▲▲▲ END gnavi ▲▲▲ --> %></div>
+								<%# <!-- ▲▲▲ END topgnavibg ▲▲▲ --> %></nav>
+
+
+    							<button class="psclose">閉じる</button>
+    						<%# <!-- ▲▲▲ END smpmenu ▲▲▲ --> %></div>
+    					<%# <!-- ▲▲▲ END bmenu ▲▲▲ --> %></div>
+    				<%# <!-- ▲▲▲ END smpmenup ▲▲▲ --> %></div>
+			<%# ━━━ ▲ ［D］移住ハンバーガーメニュー ━━━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+
+		<% elsif @designptn == "tomihiro" %>
+			<%# ━━━ ▼ ［D］富弘ヘッダー ━━━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+			<div class="headerlayout">
+				<div class="langsearchlayout">
+					<div class="selectlang">
+						<form>
+							<select name="lang" onchange="location.href=value;" title="language choice">
+								<option value="#" lang="en">Select Language</option>
+								<option value="https://translate.google.com/translate?hl=ja&amp;sl=ja&amp;tl=en&amp;u=https://<%= outer_link_config_url[0] + '/' + URI::escape(@page.access_path).gsub(/\.\/|\.\.\/|^\./){''} %>" lang="en">English</option>
+								<option value="https://translate.google.com/translate?hl=ja&amp;sl=ja&amp;tl=zh-CN&amp;u=https://<%= outer_link_config_url[0] + '/' + URI::escape(@page.access_path).gsub(/\.\/|\.\.\/|^\./){''} %>" lang="zh-CN">中文（簡体）</option>
+								<option value="https://translate.google.com/translate?hl=ja&amp;sl=ja&amp;tl=zh-TW&amp;u=https://<%= outer_link_config_url[0] + '/' + URI::escape(@page.access_path).gsub(/\.\/|\.\.\/|^\./){''} %>" lang="zh-TW">中文（繁體）</option>
+								<option value="https://translate.google.com/translate?hl=ja&amp;sl=ja&amp;tl=ko&amp;u=https://<%= outer_link_config_url[0] + '/' + URI::escape(@page.access_path).gsub(/\.\/|\.\.\/|^\./){''} %>" lang="ko">Korean</option>
+								<option value="https://translate.google.com/translate?hl=ja&amp;sl=ja&amp;tl=vi&amp;u=https://<%= outer_link_config_url[0] + '/' + URI::escape(@page.access_path).gsub(/\.\/|\.\.\/|^\./){''} %>" lang="vi">Vietnamese</option>
+								<option value="https://translate.google.com/translate?hl=ja&amp;sl=ja&amp;tl=fr&amp;u=https://<%= outer_link_config_url[0] + '/' + URI::escape(@page.access_path).gsub(/\.\/|\.\.\/|^\./){''} %>" lang="fr">French</option>
+								<option value="https://translate.google.com/translate?hl=ja&amp;sl=ja&amp;tl=it&amp;u=https://<%= outer_link_config_url[0] + '/' + URI::escape(@page.access_path).gsub(/\.\/|\.\.\/|^\./){''} %>" lang="it">Italian</option>
+								<option value="https://translate.google.com/translate?hl=ja&amp;sl=ja&amp;tl=de&amp;u=https://<%= outer_link_config_url[0] + '/' + URI::escape(@page.access_path).gsub(/\.\/|\.\.\/|^\./){''} %>" lang="de">German</option>
+								<option value="https://translate.google.com/translate?hl=ja&amp;sl=ja&amp;tl=pt&amp;u=https://<%= outer_link_config_url[0] + '/' + URI::escape(@page.access_path).gsub(/\.\/|\.\.\/|^\./){''} %>" lang="pt">Portuguese</option>
+								<option value="https://translate.google.com/translate?hl=ja&amp;sl=ja&amp;tl=es&amp;u=https://<%= outer_link_config_url[0] + '/' + URI::escape(@page.access_path).gsub(/\.\/|\.\.\/|^\./){''} %>" lang="es">Spanish</option>
+							</select>
+						</form>
+					<%# <!-- ▲▲▲ END selectlang ▲▲▲ --> %></div>
+					<div id="sitesearch">
+						<% if @system.is_snapshot? %>
+							<% if is_present(get_text_material_rp("t_search",@page.id)) %>
+								<%= get_text_material_rp("t_search",@page.id) %>
+							<% end %>
+						<% else %>
+							<form role="search" id="cse-search-box" action="<%= get_access_path(@searchresult) %>">
+								<input type="text" name="q" size="20" id="key" value="" title="サイト内検索">
+								<input type="submit" value="検索">
+							</form>
+						<% end %>
+					<%# <!-- ▲▲▲ END sitesearch ▲▲▲ --> %></div>
+				<%# <!-- ▲▲▲ END langsearchlayout ▲▲▲ --> %></div>
+				<div class="y-headermenu pconly">
+					<ul>
+						<li><a href="<%= get_access_path(@tomihiro_gnavi1) %>"><%= get_content(@tomihiro_gnavi1).page_title %></a></li>
+						<li><a href="<%= get_access_path(@tomihiro_gnavi2) %>"><%= get_content(@tomihiro_gnavi2).page_title %></a></li>
+						<li><a href="<%= get_access_path(@tomihiro_gnavi3) %>"><%= get_content(@tomihiro_gnavi3).page_title %></a></li>
+						<li><a href="<%= get_access_path(@tomihiro_gnavi4) %>"><%= get_content(@tomihiro_gnavi4).page_title %></a></li>
+						<li><a href="<%= get_access_path(@tomihiro_gnavi5) %>"><%= get_content(@tomihiro_gnavi5).page_title %></a></li>
+					</ul>
+				<%# <!-- ▲▲▲ END y-headermenu ▲▲▲ --> %></div>
+			<%# <!-- ▲▲▲ END headerlayout ▲▲▲ --> %></div>
+
+			<div id="smpmenup5bg" class="smpmenup">
+				<div id="smpmenup5" class="bmenu">
+					<button class="hnmenu" aria-expanded="false" aria-controls="smpmenup5menu"><span>MENU</span></button>
+					<div id="smpmenup5menu" class="openmenu" aria-hidden="true">
+
+						<div id="util">
+							<div id="util2">
+								<ul>
+									<li class="sizecolor pconly"><a href="<%= get_access_path(@fontsize) %>">文字サイズ・配色の変更</a></li>
+
+								</ul>
+							<%# <!-- ▲▲▲ END util2 ▲▲▲ --> %></div>
+						<%# <!-- ▲▲▲ END util ▲▲▲ --> %></div>
+										
+						<nav id="topgnavibg" role="navigation" aria-label="メインメニュー">
+							<div id="gnavi">
+								<ul>
+									<li><a href="<%= get_access_path(@tomihiro_gnavi1) %>"><%= get_content(@tomihiro_gnavi1).page_title %></a></li>
+									<li><a href="<%= get_access_path(@tomihiro_gnavi2) %>"><%= get_content(@tomihiro_gnavi2).page_title %></a></li>
+									<li><a href="<%= get_access_path(@tomihiro_gnavi3) %>"><%= get_content(@tomihiro_gnavi3).page_title %></a></li>
+									<li><a href="<%= get_access_path(@tomihiro_gnavi4) %>"><%= get_content(@tomihiro_gnavi4).page_title %></a></li>
+									<li><a href="<%= get_access_path(@tomihiro_gnavi5) %>"><%= get_content(@tomihiro_gnavi5).page_title %></a></li>
+								</ul>
+							<%# <!-- ▲▲▲ END gnavi ▲▲▲ --> %></div>
+						<%# <!-- ▲▲▲ END topgnavibg ▲▲▲ --> %></nav>
+
+
+						<button class="psclose">閉じる</button>
+					<%# <!-- ▲▲▲ END smpmenu ▲▲▲ --> %></div>
+				<%# <!-- ▲▲▲ END bmenu ▲▲▲ --> %></div>
+			<%# <!-- ▲▲▲ END smpmenup ▲▲▲ --> %></div>
+
+			<%# ━━━ ▲ ［D］富弘ヘッダー ━━━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+
+		<% elsif @designptn == "iwajuku" %>
+			<%# ━━━ ▼ ［D］岩宿ヘッダー ━━━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+			<div class="headerlayout">
+				<div class="langsearchlayout">
+					<div class="selectlang">
+						<form>
+							<select name="lang" onchange="location.href=value;" title="language choice">
+								<option value="#" lang="en">Select Language</option>
+								<option value="https://translate.google.com/translate?hl=ja&amp;sl=ja&amp;tl=en&amp;u=https://<%= outer_link_config_url[0] + '/' + URI::escape(@page.access_path).gsub(/\.\/|\.\.\/|^\./){''} %>" lang="en">English</option>
+								<option value="https://translate.google.com/translate?hl=ja&amp;sl=ja&amp;tl=zh-CN&amp;u=https://<%= outer_link_config_url[0] + '/' + URI::escape(@page.access_path).gsub(/\.\/|\.\.\/|^\./){''} %>" lang="zh-CN">中文（簡体）</option>
+								<option value="https://translate.google.com/translate?hl=ja&amp;sl=ja&amp;tl=zh-TW&amp;u=https://<%= outer_link_config_url[0] + '/' + URI::escape(@page.access_path).gsub(/\.\/|\.\.\/|^\./){''} %>" lang="zh-TW">中文（繁體）</option>
+								<option value="https://translate.google.com/translate?hl=ja&amp;sl=ja&amp;tl=ko&amp;u=https://<%= outer_link_config_url[0] + '/' + URI::escape(@page.access_path).gsub(/\.\/|\.\.\/|^\./){''} %>" lang="ko">Korean</option>
+								<option value="https://translate.google.com/translate?hl=ja&amp;sl=ja&amp;tl=vi&amp;u=https://<%= outer_link_config_url[0] + '/' + URI::escape(@page.access_path).gsub(/\.\/|\.\.\/|^\./){''} %>" lang="vi">Vietnamese</option>
+								<option value="https://translate.google.com/translate?hl=ja&amp;sl=ja&amp;tl=fr&amp;u=https://<%= outer_link_config_url[0] + '/' + URI::escape(@page.access_path).gsub(/\.\/|\.\.\/|^\./){''} %>" lang="fr">French</option>
+								<option value="https://translate.google.com/translate?hl=ja&amp;sl=ja&amp;tl=it&amp;u=https://<%= outer_link_config_url[0] + '/' + URI::escape(@page.access_path).gsub(/\.\/|\.\.\/|^\./){''} %>" lang="it">Italian</option>
+								<option value="https://translate.google.com/translate?hl=ja&amp;sl=ja&amp;tl=de&amp;u=https://<%= outer_link_config_url[0] + '/' + URI::escape(@page.access_path).gsub(/\.\/|\.\.\/|^\./){''} %>" lang="de">German</option>
+								<option value="https://translate.google.com/translate?hl=ja&amp;sl=ja&amp;tl=pt&amp;u=https://<%= outer_link_config_url[0] + '/' + URI::escape(@page.access_path).gsub(/\.\/|\.\.\/|^\./){''} %>" lang="pt">Portuguese</option>
+								<option value="https://translate.google.com/translate?hl=ja&amp;sl=ja&amp;tl=es&amp;u=https://<%= outer_link_config_url[0] + '/' + URI::escape(@page.access_path).gsub(/\.\/|\.\.\/|^\./){''} %>" lang="es">Spanish</option>
+							</select>
+						</form>
+					<%# <!-- ▲▲▲ END selectlang ▲▲▲ --> %></div>
+					<div id="sitesearch">
+						<% if @system.is_snapshot? %>
+							<% if is_present(get_text_material_rp("t_search",@page.id)) %>
+								<%= get_text_material_rp("t_search",@page.id) %>
+							<% end %>
+						<% else %>
+							<form role="search" id="cse-search-box" action="<%= get_access_path(@searchresult) %>">
+								<input type="text" name="q" size="20" id="key" value="" title="サイト内検索">
+								<input type="submit" value="検索">
+							</form>
+						<% end %>
+					<%# <!-- ▲▲▲ END sitesearch ▲▲▲ --> %></div>
+				<%# <!-- ▲▲▲ END langsearchlayout ▲▲▲ --> %></div>
+				<div class="y-headermenu pconly">
+					<ul>
+						<li><a href="<%= get_access_path(@iwajuku_gnavi1) %>"><%= get_content(@iwajuku_gnavi1).page_title %></a></li>
+						<li><a href="<%= get_access_path(@iwajuku_gnavi2) %>"><%= get_content(@iwajuku_gnavi2).page_title %></a></li>
+						<li><a href="<%= get_access_path(@iwajuku_gnavi3) %>"><%= get_content(@iwajuku_gnavi3).page_title %></a></li>
+						<li><a href="<%= get_access_path(@iwajuku_gnavi4) %>"><%= get_content(@iwajuku_gnavi4).page_title %></a></li>
+						<li><a href="<%= get_access_path(@iwajuku_gnavi5) %>"><%= get_content(@iwajuku_gnavi5).page_title %></a></li>
+					</ul>
+				<%# <!-- ▲▲▲ END y-headermenu ▲▲▲ --> %></div>
+			<%# <!-- ▲▲▲ END headerlayout ▲▲▲ --> %></div>
+
+			<div id="smpmenup5bg" class="smpmenup">
+				<div id="smpmenup5" class="bmenu">
+					<button class="hnmenu" aria-expanded="false" aria-controls="smpmenup5menu"><span>MENU</span></button>
+					<div id="smpmenup5menu" class="openmenu" aria-hidden="true">
+
+						<div id="util">
+							<div id="util2">
+								<ul>
+									<li class="sizecolor pconly"><a href="<%= get_access_path(@fontsize) %>">文字サイズ・配色の変更</a></li>
+								</ul>
+							<%# <!-- ▲▲▲ END util2 ▲▲▲ --> %></div>
+						<%# <!-- ▲▲▲ END util ▲▲▲ --> %></div>
+										
+						<nav id="topgnavibg" role="navigation" aria-label="メインメニュー">
+							<div id="gnavi">
+								<ul>
+									<li><a href="<%= get_access_path(@iwajuku_gnavi1) %>"><%= get_content(@iwajuku_gnavi1).page_title %></a></li>
+									<li><a href="<%= get_access_path(@iwajuku_gnavi2) %>"><%= get_content(@iwajuku_gnavi2).page_title %></a></li>
+									<li><a href="<%= get_access_path(@iwajuku_gnavi3) %>"><%= get_content(@iwajuku_gnavi3).page_title %></a></li>
+									<li><a href="<%= get_access_path(@iwajuku_gnavi4) %>"><%= get_content(@iwajuku_gnavi4).page_title %></a></li>
+									<li><a href="<%= get_access_path(@iwajuku_gnavi5) %>"><%= get_content(@iwajuku_gnavi5).page_title %></a></li>
+								</ul>
+							<%# <!-- ▲▲▲ END gnavi ▲▲▲ --> %></div>
+						<%# <!-- ▲▲▲ END topgnavibg ▲▲▲ --> %></nav>
+
+
+						<button class="psclose">閉じる</button>
+					<%# <!-- ▲▲▲ END smpmenu ▲▲▲ --> %></div>
+				<%# <!-- ▲▲▲ END bmenu ▲▲▲ --> %></div>
+			<%# <!-- ▲▲▲ END smpmenup ▲▲▲ --> %></div>
+
+			<%# ━━━ ▲ ［D］岩宿ヘッダー ━━━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+
+		<% elsif @designptn == "oomama" %>
+			<%# ━━━ ▼ ［D］大間々ヘッダー ━━━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+			<div class="headerlayout">
+				<div class="langsearchlayout">
+					<div class="selectlang">
+						<form>
+							<select name="lang" onchange="location.href=value;" title="language choice">
+								<option value="#" lang="en">Select Language</option>
+								<option value="https://translate.google.com/translate?hl=ja&amp;sl=ja&amp;tl=en&amp;u=https://<%= outer_link_config_url[0] + '/' + URI::escape(@page.access_path).gsub(/\.\/|\.\.\/|^\./){''} %>" lang="en">English</option>
+								<option value="https://translate.google.com/translate?hl=ja&amp;sl=ja&amp;tl=zh-CN&amp;u=https://<%= outer_link_config_url[0] + '/' + URI::escape(@page.access_path).gsub(/\.\/|\.\.\/|^\./){''} %>" lang="zh-CN">中文（簡体）</option>
+								<option value="https://translate.google.com/translate?hl=ja&amp;sl=ja&amp;tl=zh-TW&amp;u=https://<%= outer_link_config_url[0] + '/' + URI::escape(@page.access_path).gsub(/\.\/|\.\.\/|^\./){''} %>" lang="zh-TW">中文（繁體）</option>
+								<option value="https://translate.google.com/translate?hl=ja&amp;sl=ja&amp;tl=ko&amp;u=https://<%= outer_link_config_url[0] + '/' + URI::escape(@page.access_path).gsub(/\.\/|\.\.\/|^\./){''} %>" lang="ko">Korean</option>
+								<option value="https://translate.google.com/translate?hl=ja&amp;sl=ja&amp;tl=vi&amp;u=https://<%= outer_link_config_url[0] + '/' + URI::escape(@page.access_path).gsub(/\.\/|\.\.\/|^\./){''} %>" lang="vi">Vietnamese</option>
+								<option value="https://translate.google.com/translate?hl=ja&amp;sl=ja&amp;tl=fr&amp;u=https://<%= outer_link_config_url[0] + '/' + URI::escape(@page.access_path).gsub(/\.\/|\.\.\/|^\./){''} %>" lang="fr">French</option>
+								<option value="https://translate.google.com/translate?hl=ja&amp;sl=ja&amp;tl=it&amp;u=https://<%= outer_link_config_url[0] + '/' + URI::escape(@page.access_path).gsub(/\.\/|\.\.\/|^\./){''} %>" lang="it">Italian</option>
+								<option value="https://translate.google.com/translate?hl=ja&amp;sl=ja&amp;tl=de&amp;u=https://<%= outer_link_config_url[0] + '/' + URI::escape(@page.access_path).gsub(/\.\/|\.\.\/|^\./){''} %>" lang="de">German</option>
+								<option value="https://translate.google.com/translate?hl=ja&amp;sl=ja&amp;tl=pt&amp;u=https://<%= outer_link_config_url[0] + '/' + URI::escape(@page.access_path).gsub(/\.\/|\.\.\/|^\./){''} %>" lang="pt">Portuguese</option>
+								<option value="https://translate.google.com/translate?hl=ja&amp;sl=ja&amp;tl=es&amp;u=https://<%= outer_link_config_url[0] + '/' + URI::escape(@page.access_path).gsub(/\.\/|\.\.\/|^\./){''} %>" lang="es">Spanish</option>
+							</select>
+						</form>
+					<%# <!-- ▲▲▲ END selectlang ▲▲▲ --> %></div>
+					<div id="sitesearch">
+						<% if @system.is_snapshot? %>
+							<% if is_present(get_text_material_rp("t_search",@page.id)) %>
+								<%= get_text_material_rp("t_search",@page.id) %>
+							<% end %>
+						<% else %>
+							<form role="search" id="cse-search-box" action="<%= get_access_path(@searchresult) %>">
+								<input type="text" name="q" size="20" id="key" value="" title="サイト内検索">
+								<input type="submit" value="検索">
+							</form>
+						<% end %>
+					<%# <!-- ▲▲▲ END sitesearch ▲▲▲ --> %></div>
+				<%# <!-- ▲▲▲ END langsearchlayout ▲▲▲ --> %></div>
+				<div class="y-headermenu pconly">
+					<ul>
+						<li><a href="<%= get_access_path(@oomama_gnavi1) %>"><%= get_content(@oomama_gnavi1).page_title %></a></li>
+						<li><a href="<%= get_access_path(@oomama_gnavi2) %>"><%= get_content(@oomama_gnavi2).page_title %></a></li>
+						<li><a href="<%= get_access_path(@oomama_gnavi3) %>"><%= get_content(@oomama_gnavi3).page_title %></a></li>
+						<li><a href="<%= get_access_path(@oomama_gnavi4) %>"><%= get_content(@oomama_gnavi4).page_title %></a></li>
+					</ul>
+				<%# <!-- ▲▲▲ END y-headermenu ▲▲▲ --> %></div>
+			<%# <!-- ▲▲▲ END headerlayout ▲▲▲ --> %></div>
+
+			<div id="smpmenup5bg" class="smpmenup">
+				<div id="smpmenup5" class="bmenu">
+					<button class="hnmenu" aria-expanded="false" aria-controls="smpmenup5menu"><span>MENU</span></button>
+					<div id="smpmenup5menu" class="openmenu" aria-hidden="true">
+
+						<div id="util">
+							<div id="util2">
+							<ul>
+								<li class="sizecolor pconly"><a href="<%= get_access_path(@fontsize) %>">文字サイズ・配色の変更</a></li>
+							</ul>
+							<%# <!-- ▲▲▲ END util2 ▲▲▲ --> %></div>
+						<%# <!-- ▲▲▲ END util ▲▲▲ --> %></div>
+										
+						<nav id="topgnavibg" role="navigation" aria-label="メインメニュー">
+							<div id="gnavi">
+								<ul>
+									<li><a href="<%= get_access_path(@oomama_gnavi1) %>"><%= get_content(@oomama_gnavi1).page_title %></a></li>
+									<li><a href="<%= get_access_path(@oomama_gnavi2) %>"><%= get_content(@oomama_gnavi2).page_title %></a></li>
+									<li><a href="<%= get_access_path(@oomama_gnavi3) %>"><%= get_content(@oomama_gnavi3).page_title %></a></li>
+									<li><a href="<%= get_access_path(@oomama_gnavi4) %>"><%= get_content(@oomama_gnavi4).page_title %></a></li>
+								</ul>
+							<%# <!-- ▲▲▲ END gnavi ▲▲▲ --> %></div>
+						<%# <!-- ▲▲▲ END topgnavibg ▲▲▲ --> %></nav>
+
+
+						<button class="psclose">閉じる</button>
+					<%# <!-- ▲▲▲ END smpmenu ▲▲▲ --> %></div>
+				<%# <!-- ▲▲▲ END bmenu ▲▲▲ --> %></div>
+			<%# <!-- ▲▲▲ END smpmenup ▲▲▲ --> %></div>
+
+			<%# ━━━ ▲ ［D］大間々ヘッダー ━━━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+
+		<% elsif ['752_saigaitop'].include?(@page.template_code) %>
+			<%# ━━━ ▼ ［D］災害トップ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+			<div id="util">
+				<div id="util2">
+					<div class="selectlang">
+						<form>
+							<select name="lang" onchange="location.href=value;" title="language choice">
+								<option value="#" lang="en">Select Language</option>
+								<option value="https://translate.google.com/translate?hl=ja&amp;sl=ja&amp;tl=en&amp;u=https://<%= outer_link_config_url[0] + '/' + URI::escape(@page.access_path).gsub(/\.\/|\.\.\/|^\./){''} %>" lang="en">English</option>
+								<option value="https://translate.google.com/translate?hl=ja&amp;sl=ja&amp;tl=zh-CN&amp;u=https://<%= outer_link_config_url[0] + '/' + URI::escape(@page.access_path).gsub(/\.\/|\.\.\/|^\./){''} %>" lang="zh-CN">中文（簡体）</option>
+								<option value="https://translate.google.com/translate?hl=ja&amp;sl=ja&amp;tl=zh-TW&amp;u=https://<%= outer_link_config_url[0] + '/' + URI::escape(@page.access_path).gsub(/\.\/|\.\.\/|^\./){''} %>" lang="zh-TW">中文（繁體）</option>
+								<option value="https://translate.google.com/translate?hl=ja&amp;sl=ja&amp;tl=ko&amp;u=https://<%= outer_link_config_url[0] + '/' + URI::escape(@page.access_path).gsub(/\.\/|\.\.\/|^\./){''} %>" lang="ko">Korean</option>
+								<option value="https://translate.google.com/translate?hl=ja&amp;sl=ja&amp;tl=vi&amp;u=https://<%= outer_link_config_url[0] + '/' + URI::escape(@page.access_path).gsub(/\.\/|\.\.\/|^\./){''} %>" lang="vi">Vietnamese</option>
+								<option value="https://translate.google.com/translate?hl=ja&amp;sl=ja&amp;tl=fr&amp;u=https://<%= outer_link_config_url[0] + '/' + URI::escape(@page.access_path).gsub(/\.\/|\.\.\/|^\./){''} %>" lang="fr">French</option>
+								<option value="https://translate.google.com/translate?hl=ja&amp;sl=ja&amp;tl=it&amp;u=https://<%= outer_link_config_url[0] + '/' + URI::escape(@page.access_path).gsub(/\.\/|\.\.\/|^\./){''} %>" lang="it">Italian</option>
+								<option value="https://translate.google.com/translate?hl=ja&amp;sl=ja&amp;tl=de&amp;u=https://<%= outer_link_config_url[0] + '/' + URI::escape(@page.access_path).gsub(/\.\/|\.\.\/|^\./){''} %>" lang="de">German</option>
+								<option value="https://translate.google.com/translate?hl=ja&amp;sl=ja&amp;tl=pt&amp;u=https://<%= outer_link_config_url[0] + '/' + URI::escape(@page.access_path).gsub(/\.\/|\.\.\/|^\./){''} %>" lang="pt">Portuguese</option>
+								<option value="https://translate.google.com/translate?hl=ja&amp;sl=ja&amp;tl=es&amp;u=https://<%= outer_link_config_url[0] + '/' + URI::escape(@page.access_path).gsub(/\.\/|\.\.\/|^\./){''} %>" lang="es">Spanish</option>
+							</select>
+						</form>
+					</div>
+					<ul>
+						<li class="sizecolor pconly"><a href="<%= get_access_path(@fontsize) %>">文字サイズ・配色の変更</a></li>
+					</ul>
+				<%# <!-- ▲▲▲ END util2 ▲▲▲ --> %></div>
+				<div id="sitesearch">
+					<% if @system.is_snapshot? %>
+						<% if is_present(get_text_material_rp("t_search",@page.id)) %>
+							<%= get_text_material_rp("t_search",@page.id) %>
+						<% end %>
+					<% else %>
+						<form role="search" id="cse-search-box" action="<%= get_access_path(@searchresult) %>">
+						<label for="key">サイト内検索</label>
+						<input type="text" name="q" size="20" id="key" value="" title="サイト内検索">
+						<input type="submit" value="検索">
+						</form>
+					<% end %>
+				<%# <!-- ▲▲▲ END sitesearch ▲▲▲ --> %></div>
+			<%# <!-- ▲▲▲ END util ▲▲▲ --> %></div>
+			<%# ━━━ ▲ ［D］災害トップ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+
+		<% else %>
+			<div id="utilmenuwrap">
+
+				<div id="headerbannerbg">
+					<div class="header_banner"><a href="<%= get_access_path(@kodomo) %>" target="_blank"><img src="<%= site_template_path %>/_res/<%= @designptn %>/images/header/header_bnr_01.png?a" alt="こども未来ガイド" width="170" height="60"></a></div>
+					<div class="header_banner"><a href="https://16106midori.jp/" target="_blank"><img src="<%= site_template_path %>/_res/<%= @designptn %>/images/header/header_bnr_02.png" alt="いろどりみどり市" width="170" height="60"></a></div>
+					<div class="header_banner"><a href="<%= get_access_path(@iju) %>"><img src="<%= site_template_path %>/_res/<%= @designptn %>/images/header/header_bnr_03.png" alt="群馬県みどり市移住定住サイト" width="170" height="60"></a></div>
+				<%# <!-- ▲▲▲ END headerbannerbg ▲▲▲ --> %></div>
+
+    			<div id="dropdownmenu">
+    				<div id="smpmenup2bg" class="smpmenup">
+    					<div id="smpmenup2" class="bmenu">
+    						<button class="hnmenu" aria-expanded="false" aria-controls="emergencymenu"><span>いざというとき</span></button>
+    						<div id="emergencymenu" class="openmenu" aria-hidden="true">
+								<ul class="flexstyle1">						
+									<li><a href="<%= get_access_path(@emenu1) %>"><img src="<%= site_template_path %>/_res/<%= @designptn %>/images/header/icon-emenu1.png" alt="" width="66" height="66">防災・防犯情報メール</a></li>
+									<li><a href="<%= get_access_path(@emenu2) %>"><img src="<%= site_template_path %>/_res/<%= @designptn %>/images/header/icon-emenu2.png" alt="" width="66" height="66">避難所</a></li>
+									<li><a href="<%= get_access_path(@emenu3) %>"><img src="<%= site_template_path %>/_res/<%= @designptn %>/images/header/icon-emenu3.png" alt="" width="66" height="66">ハザードマップ</a></li>
+									<li><a href="<%= get_access_path(@emenu4) %>"><img src="<%= site_template_path %>/_res/<%= @designptn %>/images/header/icon-emenu4.png" alt="" width="66" height="66">救急・休日当番医</a></li>
+								</ul>
+    							
+    							<button class="psclose">閉じる</button>
+    						<%# <!-- ▲▲▲ END emergencymenu ▲▲▲ --> %></div>
+    					<%# <!-- ▲▲▲ END bmenu ▲▲▲ --> %></div>
+    				<%# <!-- ▲▲▲ END smpmenup ▲▲▲ --> %></div>
+    				
+    				<div id="smpmenup1bg" class="smpmenup">
+    					<div id="smpmenup1" class="bmenu">
+    						<button class="hnmenu" aria-expanded="false" aria-controls="smpmenup1menu"><span>メニュー</span></button>
+    						<div id="smpmenup1menu" class="openmenu" aria-hidden="true">
+
+								<div id="util">
+									<div id="util2">
+										<div class="selectlang">
+											<form>
+												<select name="lang" onchange="location.href=value;" title="language choice">
+													<option value="#" lang="en">Select Language</option>
+													<option value="https://translate.google.com/translate?hl=ja&amp;sl=ja&amp;tl=en&amp;u=https://<%= outer_link_config_url[0] + '/' + URI::escape(@page.access_path).gsub(/\.\/|\.\.\/|^\./){''} %>" lang="en">English</option>
+													<option value="https://translate.google.com/translate?hl=ja&amp;sl=ja&amp;tl=zh-CN&amp;u=https://<%= outer_link_config_url[0] + '/' + URI::escape(@page.access_path).gsub(/\.\/|\.\.\/|^\./){''} %>" lang="zh-CN">中文（簡体）</option>
+													<option value="https://translate.google.com/translate?hl=ja&amp;sl=ja&amp;tl=zh-TW&amp;u=https://<%= outer_link_config_url[0] + '/' + URI::escape(@page.access_path).gsub(/\.\/|\.\.\/|^\./){''} %>" lang="zh-TW">中文（繁體）</option>
+													<option value="https://translate.google.com/translate?hl=ja&amp;sl=ja&amp;tl=ko&amp;u=https://<%= outer_link_config_url[0] + '/' + URI::escape(@page.access_path).gsub(/\.\/|\.\.\/|^\./){''} %>" lang="ko">Korean</option>
+													<option value="https://translate.google.com/translate?hl=ja&amp;sl=ja&amp;tl=vi&amp;u=https://<%= outer_link_config_url[0] + '/' + URI::escape(@page.access_path).gsub(/\.\/|\.\.\/|^\./){''} %>" lang="vi">Vietnamese</option>
+													<option value="https://translate.google.com/translate?hl=ja&amp;sl=ja&amp;tl=fr&amp;u=https://<%= outer_link_config_url[0] + '/' + URI::escape(@page.access_path).gsub(/\.\/|\.\.\/|^\./){''} %>" lang="fr">French</option>
+													<option value="https://translate.google.com/translate?hl=ja&amp;sl=ja&amp;tl=it&amp;u=https://<%= outer_link_config_url[0] + '/' + URI::escape(@page.access_path).gsub(/\.\/|\.\.\/|^\./){''} %>" lang="it">Italian</option>
+													<option value="https://translate.google.com/translate?hl=ja&amp;sl=ja&amp;tl=de&amp;u=https://<%= outer_link_config_url[0] + '/' + URI::escape(@page.access_path).gsub(/\.\/|\.\.\/|^\./){''} %>" lang="de">German</option>
+													<option value="https://translate.google.com/translate?hl=ja&amp;sl=ja&amp;tl=pt&amp;u=https://<%= outer_link_config_url[0] + '/' + URI::escape(@page.access_path).gsub(/\.\/|\.\.\/|^\./){''} %>" lang="pt">Portuguese</option>
+													<option value="https://translate.google.com/translate?hl=ja&amp;sl=ja&amp;tl=es&amp;u=https://<%= outer_link_config_url[0] + '/' + URI::escape(@page.access_path).gsub(/\.\/|\.\.\/|^\./){''} %>" lang="es">Spanish</option>
+												</select>
+											</form>
+										</div>
+										<ul>
+											<li class="sizecolor pconly"><a href="<%= get_access_path(@fontsize) %>">文字サイズ・配色の変更</a></li>
+										</ul>
+									<%# <!-- ▲▲▲ END util2 ▲▲▲ --> %></div>
+								<%# <!-- ▲▲▲ END util ▲▲▲ --> %></div>
+												
+                    			<%# ★★★トップページの内容を取得して表示★★★ %>
+                    			<%#-- ハンバーガーメニュー用情報取得 --%>
+                    			<% humberger_menu_obj = Hash.new %>
+                    			<%# サイトプレビュー時もis_snapshot?はtrueになるため、get_access_pathの生成内容がjavascriptだったらサイトプレビューとし、公開用のキャッシュを使用しない %>
+                    			<% if @system.is_snapshot? && !get_access_path(@top).include?("javascript:parent.change_page") %>
+                    				<% if is_present(get_humberger_menu_data(@top,"default",@system.is_snapshot?)) %>
+                    					<% humberger_menu_obj = get_humberger_menu_data(@top,"default",@system.is_snapshot?) %>
+                    				<% end %>
+                    			<% else %>
+                    				<%# サイトプレビュー時もis_snapshot?はtrueになってしまうため、3つ目の引数はfalse固定 %>
+                    				<% if is_present(get_humberger_menu_data(@top,"default",false)) %>
+                    					<% humberger_menu_obj = get_humberger_menu_data(@top,"default",false) %>
+                    				<% end %>
+                    			<% end %>
+    						    
+                    			<% if humberger_menu_obj.length > 0 %>
+                					<% if is_present(humberger_menu_obj["top_iconbanner01"]) %>
+                						<div id="purposemenu1">
+                						    <ul class="flexstyle1">
+                								<%= humberger_menu_obj["top_iconbanner01"] %>
+                						    </ul>
+                						<%# <!-- ▲▲▲ END purposemenu1 ▲▲▲ --> %></div>
+                					<% end %>
+                				<% end %>
+
+								<div id="purposemenu2">
+									<ul class="clearfix">
+										<li><a href="<%= get_access_path(@event_calendar) %>"><img src="<%= site_template_path %>/_res/<%= @designptn %>/images/header/icon-calendar.png" alt="" width="46" height="46"><span>イベントカレンダー</span></a></li>
+										<li><a href="<%= get_access_path(@faq) %>"><img src="<%= site_template_path %>/_res/<%= @designptn %>/images/header/icon-faq.png" alt="" width="46" height="46"><span>よくあるご質問</span></a></li>
+										<li><a href="<%= get_access_path(@searchmap) %>"><img src="<%= site_template_path %>/_res/<%= @designptn %>/images/header/icon-map.png" alt="" width="46" height="46"><span>地図から探す</span></a></li>
+									</ul>
+								</div>
+
+    							<button class="psclose">閉じる</button>
+    						<%# <!-- ▲▲▲ END smpmenu ▲▲▲ --> %></div>
+    					<%# <!-- ▲▲▲ END bmenu ▲▲▲ --> %></div>
+    				<%# <!-- ▲▲▲ END smpmenup ▲▲▲ --> %></div>
+
+					<% if ['751_top'].include?(@page.template_code) %>
+						<%#-- トップのときはスマホでだけ出す--%>
+						<div id="smpmenup3bg" class="smpmenup smponly">
+							<div id="smpmenup3" class="bmenu">
+								<button class="hnmenu" aria-expanded="false" aria-controls="smpmenup3menu"><img class="pconly" src="<%= site_template_path %>/_res/<%= @designptn %>/images/header/icon-bmenu3.png" alt="検索" width="27" height="26"><span class="smponly">検索</span></button>
+								<div id="smpmenup3menu" class="openmenu" aria-hidden="true">
+
+										<% unless enq_header %>
+											<div id="sitesearch">
+												<% if @system.is_snapshot? %>
+													<% if is_present(get_text_material_rp("t_search",@page.id)) %>
+														<%= get_text_material_rp("t_search",@page.id) %>
+													<% end %>
+												<% else %>
+													<form role="search" id="cse-search-box" action="<%= get_access_path(@searchresult) %>">
+													<label for="key">サイト内検索</label>
+													<input type="text" name="q" size="20" id="key" value="" title="サイト内検索">
+													<input type="submit" value="検索">
+													</form>
+												<% end %>
+											<%# <!-- ▲▲▲ END sitesearch ▲▲▲ --> %></div>
+										<% end %>
+											
+									<button class="psclose">閉じる</button>
+								<%# <!-- ▲▲▲ END purposemenu ▲▲▲ --> %></div>
+							<%# <!-- ▲▲▲ END bmenu ▲▲▲ --> %></div>
+						<%# <!-- ▲▲▲ END smpmenup ▲▲▲ --> %></div>
+					<% else %>
+						<div id="smpmenup3bg" class="smpmenup">
+							<div id="smpmenup3" class="bmenu">
+								<button class="hnmenu" aria-expanded="false" aria-controls="smpmenup3menu"><img class="pconly" src="<%= site_template_path %>/_res/<%= @designptn %>/images/header/icon-bmenu3.png" alt="検索" width="27" height="26"><span class="smponly">検索</span></button>
+								<div id="smpmenup3menu" class="openmenu" aria-hidden="true">
+
+										<% unless enq_header %>
+											<div id="sitesearch">
+												<% if @system.is_snapshot? %>
+													<% if is_present(get_text_material_rp("t_search",@page.id)) %>
+														<%= get_text_material_rp("t_search",@page.id) %>
+													<% end %>
+												<% else %>
+													<form role="search" id="cse-search-box" action="<%= get_access_path(@searchresult) %>">
+													<label for="key">サイト内検索</label>
+													<input type="text" name="q" size="20" id="key" value="" title="サイト内検索">
+													<input type="submit" value="検索">
+													</form>
+												<% end %>
+											<%# <!-- ▲▲▲ END sitesearch ▲▲▲ --> %></div>
+										<% end %>
+											
+									<button class="psclose">閉じる</button>
+								<%# <!-- ▲▲▲ END purposemenu ▲▲▲ --> %></div>
+							<%# <!-- ▲▲▲ END bmenu ▲▲▲ --> %></div>
+						<%# <!-- ▲▲▲ END smpmenup ▲▲▲ --> %></div>
+					<% end %>
+    			<%# <!-- ▲▲▲ END dropdownmenu ▲▲▲ --> %></div>
+
+			<%# <!-- ▲▲▲ END utilmenuwrap ▲▲▲ --> %></div>
+
+		<% end %>
+
+	<%# <!-- ▲▲▲ END header ▲▲▲ --> %></div>
+
+	<%# ━━━ ▼ ［D］グローバルナビ（災害以外）  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+	<% if !['752_saigaitop'].include?(@page.template_code) && @designptn != "iju" && @designptn != "tomihiro" && @designptn != "iwajuku" && @designptn != "oomama" %>
+		<% if ['751_top'].include?(@page.template_code) %>
+			<nav id="topgnavibg" role="navigation" aria-label="メインメニュー">
+		<% else %>
+			<nav id="gnavibg" role="navigation" aria-label="メインメニュー">
+		<% end %>
+			<div id="gnavi">
+				<ul id="topscate" class="clearfix">
+					<%#-- グローバルナビのページID --%>
+					<% gnavi_obj = Hash.new %>
+					<% gnavi_list= @default_gnavi %>
+					<%# サイトプレビュー時もis_snapshot?はtrueになるため、get_access_pathの生成内容がjavascriptだったらサイトプレビューとし、公開用のキャッシュを使用しない %>
+					<% if @system.is_snapshot? && !get_access_path(@top).include?("javascript:parent.change_page") %>
+						<% if is_present(get_gnavi_menu_data(gnavi_list,"default",@system.is_snapshot?)) %>
+							<% gnavi_obj = get_gnavi_menu_data(gnavi_list,"default",@system.is_snapshot?) %>
+						<% end %>
+					<% else %>
+						<%# サイトプレビュー時もis_snapshot?はtrueになってしまうため、3つ目の引数はfalse固定 %>
+						<% if is_present(get_gnavi_menu_data(gnavi_list,"default",false)) %>
+							<% gnavi_obj = get_gnavi_menu_data(gnavi_list,"default",false) %>
+						<% end %>
+					<% end %>
+					
+					<li class="scate scate1">
+						<button class="tismenu pconly" aria-expanded="false" aria-controls="list1"><img src="<%= site_template_path %>/_res/<%= @designptn %>/images/header/icon-scate1.png" alt="" width="21" height="21">くらし</button>
+						<div id="list1" class="navi" aria-hidden="true">
+							<div class="gnavilower clearfix">
+								<p class="gnavidetail"><a href="<%= get_access_path(@gnavi1) %>">くらし<span class="pconly">トップ</span></a></p>
+								<button class="gnaviclose pconly">閉じる</button>
+							<!-- ▲▲▲ END gnavilower ▲▲▲ --></div>
+										
+							<% if gnavi_obj.length > 0 && is_present(gnavi_obj["gnavi1"]) %>
+								<ul class="clearfix pconly">
+									<%= gnavi_obj["gnavi1"] %>
+								</ul>
+							<% end %>
+						<!-- ▲▲▲ END navi ▲▲▲ --></div>
+					<!-- ▲▲▲ END scate ▲▲▲ --></li>
+
+					<li class="scate scate2">
+						<button class="tismenu pconly" aria-expanded="false" aria-controls="list2"><img src="<%= site_template_path %>/_res/<%= @designptn %>/images/header/icon-scate4.png" alt="" width="27" height="21">子育て・教育・文化</button>
+						<div id="list2" class="navi" aria-hidden="true">
+							<div class="gnavilower clearfix">
+								<p class="gnavidetail"><a href="<%= get_access_path(@gnavi2) %>">子育て・教育・文化<span class="pconly">トップ</span></a></p>
+								<button class="gnaviclose pconly">閉じる</button>
+							<!-- ▲▲▲ END gnavilower ▲▲▲ --></div>
+							
+							<% if gnavi_obj.length > 0 && is_present(gnavi_obj["gnavi2"]) %>
+								<ul class="clearfix pconly">
+									<%= gnavi_obj["gnavi2"] %>
+								</ul>
+							<% end %>
+						<!-- ▲▲▲ END navi ▲▲▲ --></div>
+					<!-- ▲▲▲ END scate ▲▲▲ --></li>
+
+					<li class="scate scate3">
+						<button class="tismenu pconly" aria-expanded="false" aria-controls="list3"><img src="<%= site_template_path %>/_res/<%= @designptn %>/images/header/icon-scate2.png" alt="" width="25" height="25">健康づくり・福祉</button>
+						<div id="list3" class="navi" aria-hidden="true">
+							<div class="gnavilower clearfix">
+								<p class="gnavidetail"><a href="<%= get_access_path(@gnavi3) %>">健康づくり・福祉<span class="pconly">トップ</span></a></p>
+								<button class="gnaviclose pconly">閉じる</button>
+							<!-- ▲▲▲ END gnavilower ▲▲▲ --></div>
+							
+							<% if gnavi_obj.length > 0 && is_present(gnavi_obj["gnavi3"]) %>
+								<ul class="clearfix pconly">
+									<%= gnavi_obj["gnavi3"] %>
+								</ul>
+							<% end %>
+						<!-- ▲▲▲ END navi ▲▲▲ --></div>
+					<!-- ▲▲▲ END scate ▲▲▲ --></li>
+					
+					<li class="scate scate4">
+						<button class="tismenu pconly" aria-expanded="false" aria-controls="list4"><img src="<%= site_template_path %>/_res/<%= @designptn %>/images/header/icon-scate3.png" alt="" width="20" height="21">環境・まちづくり</button>
+						<div id="list4" class="navi" aria-hidden="true">
+							<div class="gnavilower clearfix">
+								<p class="gnavidetail"><a href="<%= get_access_path(@gnavi4) %>">環境・まちづくり<span class="pconly">トップ</span></a></p>
+								<button class="gnaviclose pconly">閉じる</button>
+							<!-- ▲▲▲ END gnavilower ▲▲▲ --></div>
+							
+							<% if gnavi_obj.length > 0 && is_present(gnavi_obj["gnavi4"]) %>
+								<ul class="clearfix pconly">
+									<%= gnavi_obj["gnavi4"] %>
+								</ul>
+							<% end %>
+						<!-- ▲▲▲ END navi ▲▲▲ --></div>
+					<!-- ▲▲▲ END scate ▲▲▲ --></li>
+					
+
+					<li class="scate scate5">
+						<button class="tismenu pconly" aria-expanded="false" aria-controls="list5"><img src="<%= site_template_path %>/_res/<%= @designptn %>/images/header/icon-scate5.png" alt="" width="27" height="26">産業・ビジネス</button>
+						<div id="list5" class="navi" aria-hidden="true">
+							<div class="gnavilower clearfix">
+								<p class="gnavidetail"><a href="<%= get_access_path(@gnavi5) %>">産業・ビジネス<span class="pconly">トップ</span></a></p>
+								<button class="gnaviclose pconly">閉じる</button>
+							<!-- ▲▲▲ END gnavilower ▲▲▲ --></div>
+							
+							<% if gnavi_obj.length > 0 && is_present(gnavi_obj["gnavi5"]) %>
+								<ul class="clearfix pconly">
+									<%= gnavi_obj["gnavi5"] %>
+								</ul>
+							<% end %>
+						<!-- ▲▲▲ END navi ▲▲▲ --></div>
+					<!-- ▲▲▲ END scate ▲▲▲ --></li>
+					
+					<li class="scate scate6">
+						<button class="tismenu pconly" aria-expanded="false" aria-controls="list6"><img src="<%= site_template_path %>/_res/<%= @designptn %>/images/header/icon-scate6.png" alt="" width="19" height="22">市政</button>
+						<div id="list6" class="navi" aria-hidden="true">
+							<div class="gnavilower clearfix">
+								<p class="gnavidetail"><a href="<%= get_access_path(@gnavi6) %>">市政<span class="pconly">トップ</span></a></p>
+								<button class="gnaviclose pconly">閉じる</button>
+							<!-- ▲▲▲ END gnavilower ▲▲▲ --></div>
+							
+							<% if gnavi_obj.length > 0 && is_present(gnavi_obj["gnavi6"]) %>
+								<ul class="clearfix pconly">
+									<%= gnavi_obj["gnavi6"] %>
+								</ul>
+							<% end %>
+						<!-- ▲▲▲ END navi ▲▲▲ --></div>
+					<!-- ▲▲▲ END scate ▲▲▲ --></li>
+				</ul>
+			<%# <!-- ▲▲▲ END gnavi ▲▲▲ --> %></div>
+		<%# <!-- ▲▲▲ END gnavibg ▲▲▲ --> %></nav>
+	<% end %>
+	<%# ━━━ ▲ ［D］グローバルナビ（災害以外）  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+
+<%# <!-- ▲▲▲ END headerbg ▲▲▲ --> %></header>
+
+<%# ━━━ ▲ ［D］ヘッダー  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+
+<hr class="hide">
+
+<%# ====== ▼▼ ［T］トップページの内容 ▼▼ ========================================================== %>
+<% if ['751_top','703_ijutop','704_yakatatop','752_saigaitop'].include?(@page.template_code) %>
+	<%= @page.render %>
+<%# ====== ▼▼ ［T］トップページ以外 ▼▼ ============================================================ %>
+<% else %>
+
+	<%# ━━━ ▼ 移住定住の配下ページにカテゴリ名を表示する ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+	<% if first_id == @iju %>
+			<% if second_id == @iju_gnavi1 %>
+				<div class="ijusubtop_cate"><p><span lang="en">News</span><span class="mincho"><%= get_content(@iju_gnavi1).page_title %></span></p></div>
+			<% elsif second_id == @iju_gnavi2 %>
+				<div class="ijusubtop_cate"><p><span lang="en">Life</span><span class="mincho"><%= get_content(@iju_gnavi2).page_title %></span></p></div>
+			<% elsif second_id == @iju_gnavi3 %>
+				<div class="ijusubtop_cate"><p><span lang="en">Voice</span><span class="mincho"><%= get_content(@iju_gnavi3).page_title %></span></p></div>
+			<% elsif second_id == @iju_gnavi4 %>
+				<div class="ijusubtop_cate"><p><span lang="en">Contact</span><span class="mincho"><%= get_content(@iju_gnavi4).page_title %></span></p></div>
+			<% end %>
+	<% end %>
+	<%# ━━━ ▲ 移住定住の配下ページにカテゴリ名を表示する ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+	
+	<%# ━━━ ▼ ［T］パンくず  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+	<% routes = get_routes(my_id) %>
+
+	<% if opd_header %>
+		<% opendata_top = get_content(@opendata_top) %>
+		<nav id="tpath" role="navigation" aria-label="現在の位置">
+		<p>現在の位置：&nbsp;
+			<% if @system.is_snapshot? %>
+				<span><a href="<%= @top_url %>">トップページ</a></span> &gt;
+			<% else %>
+				<span><a href="<%= get_access_path(@top) %>">トップページ</a></span> &gt;
+			<% end %>
+			<span><a href="<%= opendata_top.access_path %>"><%= opendata_top.page_title %></a></span> &gt;
+			<span>[[[opendata_page_title]]]</span>
+		</p>
+		<%# <!-- ▲▲▲ END tpath ▲▲▲ --> %></nav>
+	<% elsif enq_header %>
+		<nav id="tpath" role="navigation" aria-label="現在の位置">
+		<p>現在の位置：&nbsp;
+			<% if @system.is_snapshot? %>
+				<span><a href="<%= @top_url %>">トップページ</a></span> &gt;
+			<% else %>
+				<span><a href="<%= get_access_path(@top) %>">トップページ</a></span> &gt;
+			<% end %>
+			<span>各課へのお問い合わせ</span>
+		</p>
+		<%# <!-- ▲▲▲ END tpath ▲▲▲ --> %></nav>
+	<% elsif dllist_header %>
+		<% shinseisho_top = get_content(@shinsei_top) %>
+		<nav id="tpath" role="navigation" aria-label="現在の位置">
+		<p><img alt="現在の位置" height="32" src="<%= site_template_path %>/_res/<%= @designptn %>/images/content/mark_tpath.svg">&nbsp;
+			<% if @system.is_snapshot? %>
+				<span><a href="<%= @top_url %>">トップページ</a></span> &gt;
+			<% else %>
+				<span><a href="<%= get_access_path(@top) %>">トップページ</a></span> &gt;
+			<% end %>
+			<span><a href="<%= shinseisho_top.access_path %>"><%= shinseisho_top.page_title %></a></span> &gt;
+			<span>[[[opendata_page_title]]]</span>
+		</p>
+		<%# <!-- ▲▲▲ END tpath ▲▲▲ --> %></nav>
+	<% else %>
+		<nav id="tpath" role="navigation" aria-label="現在の位置">
+		<p>現在の位置：&nbsp;
+			<% routes.each_with_index do |path,idx| %>
+				<% if idx == 0 %>
+					<% if @system.is_snapshot? %>
+						<span><a href="<%= @top_url %>">トップページ</a></span> &gt;
+					<% else %>
+						<span><a href="<%= get_access_path(@top) %>">トップページ</a></span> &gt;
+					<% end %>
+				<% else %>
+					<span><a href="<%= path.access_path %>"><%= path.page_title %></a></span> &gt;
+				<% end %>
+			<% end %>
+			<span><%= @page.page_title %></span>
+		</p>
+		<%# <!-- ▲▲▲ END tpath ▲▲▲ --> %></nav>
+	<% end %>
+	<%# ━━━ ▲ ［T］パンくず  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+
+	<%# ━━━ ▼ セカンドトップのページタイトルが画像ではなく、かつ特設サイト配下でないとき ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+	<% if ['702_secondtop'].include?(@page.template_code) %>
+		<% if !is_present(@page.picture(2).access_path) %>
+			<% if @designptn != "iju" && @designptn != "tomihiro" && @designptn != "iwajuku" && @designptn != "oomama" %>
+				<% if @page.id == @gnavi1 %>
+					<h1 id="petit-h1"><p><img src="<%= site_template_path %>/_res/<%= @designptn %>/images/content/icon-kurashi.png" alt="" width="56" height="56"><span><%= @page.page_title %></span></p></h1>
+				<% elsif @page.id == @gnavi2 %>
+					<h1 id="petit-h1"><p><img src="<%= site_template_path %>/_res/<%= @designptn %>/images/content/icon-kosodate.png" alt="" width="65" height="49"><span><%= @page.page_title %></span></p></h1>
+				<% elsif @page.id == @gnavi3 %>
+					<h1 id="petit-h1"><p><img src="<%= site_template_path %>/_res/<%= @designptn %>/images/content/icon-kenkou.png" alt="" width="56" height="55"><span><%= @page.page_title %></span></p></h1>
+				<% elsif @page.id == @gnavi4 %>
+					<h1 id="petit-h1"><p><img src="<%= site_template_path %>/_res/<%= @designptn %>/images/content/icon-kankyo.png" alt="" width="53" height="57"><span><%= @page.page_title %></span></p></h1>
+				<% elsif @page.id == @gnavi5 %>
+					<h1 id="petit-h1"><p><img src="<%= site_template_path %>/_res/<%= @designptn %>/images/content/icon-sangyou.png" alt="" width="57" height="57"><span><%= @page.page_title %></span></p></h1>
+				<% elsif @page.id == @gnavi6 %>
+					<h1 id="petit-h1"><p><img src="<%= site_template_path %>/_res/<%= @designptn %>/images/content/icon-shisei.png" alt="" width="47" height="55"><span><%= @page.page_title %></span></p></h1>
+				<% else %>
+					<h1 id="petit-h1"><p><%= @page.page_title %></p></h1>
+				<% end %>
+			<% end %>
+		<% end %>
+	<% end %>
+	<%# ━━━ ▲ セカンドトップのページタイトルが画像ではなく、かつ特設サイト配下でないとき ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+
+	<%# ━━━ ▼ 汎用トップのページタイトルが画像ではなく、かつ特設サイト配下でないとき ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+	<% if ['701_generaltop'].include?(@page.template_code) %>
+		<% if !is_present(@page.picture(2).access_path) %>
+			<% if @designptn != "iju" && @designptn != "tomihiro" && @designptn != "iwajuku" && @designptn != "oomama" %>
+				<% if @page.id != @shinsei_top %>
+					<h1 id="petit-h1"><p><%= @page.page_title %></p></h1>
+				<% end %>
+			<% end %>
+		<% end %>
+	<% end %>
+	<%# ━━━ ▲ 汎用トップのページタイトルが画像ではなく、かつ特設サイト配下でないとき ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+
+	<hr class="hide">
+
+	<%# ━━━ ▼ ［TD］本文 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+	<%# ------ ▽ ［D］ローカルナビの左右判定 ------------------------------------------- %>
+	<% if lnavileft %>
+		<div id="pagebody" class="clearfix lnavileft">
+	<% else %>
+		<div id="pagebody" class="clearfix lnaviright">
+	<% end %>
+	<%# ------ △ ［D］ローカルナビの左右判定 ------------------------------------------- %>
+	
+	<%# ------ ▽ ［D］本文ジャンプ ----------------------------------------------------- %>
+	<p class="skip"><a id="HONBUN">ここから本文です。</a></p>
+	<%# ------ △ ［D］本文ジャンプ ----------------------------------------------------- %>
+
+	<%# -- ▽ ［T］オープンデータ、申請書用ヘッダ出力用 ----------------------------------------- %>
+	<% if opd_header %>
+		<div id="opendata" class="clearfix">
+			<p class="title opendata">オープンデータ<span lang="en" class="entitle">Open Data</span></p>
+	<% elsif dllist_header %>
+		<div id="opendata" class="clearfix">
+			<p class="title application">申請書検索<span lang="en" class="entitle">Application form</span></p>
+	<% elsif @page.id == @shinsei_top %>
+		<div id="opendata" class="clearfix">
+			<h1 class="title application">申請書検索<span lang="en" class="entitle">Application form</span></h1>
+	<% end %>
+	<%# -- △ ［T］オープンデータ、申請書用ヘッダ出力用 ----------------------------------------- %>
+
+
+
+	<%# ====== ▽▽ ［T］content2（汎用項目がローカルナビ：第1階層非表示の場合） ▽▽ ================= %>
+	<%# 一覧表示テンプレートで孫リスト（ローカルナビなし2列）を選択した場合もcontent2で表示する %>
+	<% if ['902_newslist','907_map_search','909_kouhou_keisai',"171_csv_map"].include?(@page.template_code) || ( ['001_pagelist'].include?(@page.template_code) && @page.common(7).plain == "10" ) || (@page.common(10).list.include?('lnavi_hide') && !['701_generaltop','702_secondtop','753_faqtop','754_opendatatop','901_sitemap'].include?(@page.template_code)) || enq_header || enq_footer %>
+		<main role="main">
+			<article id="content2">
+				<%# -- ▽ ［T］アンケートシステム用ヘッダ出力用 --------------------------------- %>
+				<% if enq_header %>
+					<% if @system.is_snapshot? %>
+						<!--turn_off_the_bottom_from_here[header]-->
+					<% end %>
+				<% end %>
+				<%# -- △ ［T］アンケートシステム用ヘッダ出力用 --------------------------------- %>
+		
+				<div id="voice">
+					<%# -- ▽ ［D］ページタイトル ----------------------------------------------- %>
+					<%# タイトル画像 %>
+					<% if is_present(@page.picture(2).access_path) %>
+						<h1 class="h1img"><img src="<%= @page.picture(2).access_path %>" alt="<%= @page.picture(2).alt.present? ? @page.picture(2).alt : @page.page_title %>" width="<%= @page.picture(2).width %>" height="<%= @page.picture(2).height %>"></h1>
+					<% else %>
+						<%# ページタイトル %>
+						<h1><%= @page.page_title %></h1>
+					<% end %>
+					<%# -- ▽ コンテンツ内容 ---------------------------------------------------- %>
+					<%= @page.render %>
+				<%# <!-- ▲▲▲ END voice ▲▲▲ --> %></div>
+
+				<%# -- ▽ ［T］アンケートシステム用フッタ出力用 --------------------------------- %>
+				<% if enq_footer %>
+					<% if @system.is_snapshot? %>
+						<!--turn_off_the_top_from_here[footer]-->
+					<% end %>
+				<% end %>
+				<%# -- △ ［T］アンケートシステム用フッタ出力用 --------------------------------- %>
+				
+			<%# <!-- ▲▲▲ END content2 ▲▲▲ --> %></article>
+		</main>
+	<%# ====== ▽▽ ［T］content3 ▽▽ ================================================================ %>
+	<% elsif ['701_generaltop','702_secondtop','753_faqtop','754_opendatatop','901_sitemap','915_event_calendar'].include?(@page.template_code) %>
+		<main role="main">
+			<article id="content3">
+				<div id="voice">
+					<%# -- ▽ コンテンツ内容 ---------------------------------------------------- %>
+					<%= @page.render %>
+				<%# <!-- ▲▲▲ END voice ▲▲▲ --> %></div>
+			<%# <!-- ▲▲▲ END content3 ▲▲▲ --> %></article>
+		</main>
+	<%# ====== ▽▽ ［TD］content1 ▽▽ =============================================================== %>
+	<% else %>
+		<main id="page" role="main">
+			<article id="content">
+				<div id="voice">
+					<%# -- ▽ ［T］オープンデータ、申請書用ヘッダ出力用 --------------------------------- %>
+					<% if opd_header || dllist_header %>
+						<% if @system.is_snapshot? %>
+							<!--turn_off_the_bottom_from_here[header]-->
+						<% end %>
+					<% end %>
+					<%# -- △ ［T］オープンデータ、申請書用ヘッダ出力用 --------------------------------- %>
+			
+					<%# -- ▽ ［D］ページタイトル ----------------------------------------------- %>
+					<%# タイトル画像 %>
+					<% if is_present(@page.picture(2).access_path) %>
+						<% if ['103_faq'].include?(@page.template_code) %>
+							<p class="h1img"><img src="<%= @page.picture(2).access_path %>" alt="<%= @page.picture(2).alt.present? ? @page.picture(2).alt : @page.page_title %>" width="<%= @page.picture(2).width %>" height="<%= @page.picture(2).height %>"></p>
+						<% else %>
+							<h1 class="h1img"><img src="<%= @page.picture(2).access_path %>" alt="<%= @page.picture(2).alt.present? ? @page.picture(2).alt : @page.page_title %>" width="<%= @page.picture(2).width %>" height="<%= @page.picture(2).height %>"></h1>
+						<% end %>
+					<%# ページタイトル（テキスト） %>
+					<% else %>
+						<%# よくある質問  %>
+						<% if ['103_faq'].include?(@page.template_code) %>
+							<p class="faqtitle"><%= get_content(parent_id).page_title %><span class="smallspan">　よくある質問</span></p>
+						<%# 通常ページ %>
+						<% else %>
+							<h1><%= @page.page_title %></h1>
+						<% end %>
+					<% end %>
+					<%# -- △ ［D］ページタイトル ----------------------------------------------- %>
+					<%# -- ▽ コンテンツ内容 ---------------------------------------------------- %>
+					<%= @page.render %>
+					<%# -- ▽ ［T］オープンデータ、申請書用フッタ出力用 --------------------------------- %>
+					<% if opd_footer || dllist_footer %>
+						<% if @system.is_snapshot? %>
+							<!--turn_off_the_top_from_here[footer]-->
+						<% end %>
+					<% end %>
+					<%# -- △ ［T］オープンデータ、申請書用フッタ出力用 --------------------------------- %>
+				<%# <!-- ▲▲▲ END voice ▲▲▲ --> %></div>
+			<%# <!-- ▲▲▲ END content ▲▲▲ --> %></article>
+		</main>
+		
+		<hr class="hide">
+
+		<%# ━━━ ▼ ［T］ローカルナビ  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+		<nav id="lnavi" role="navigation" aria-labelledby="localnav">
+			<div id="menubg">
+				<div id="menu" class="articleall">
+					<%# -- ▽ オープンデータトップ配下のナビ生成（杉並以降）------------------------- %>
+					<% if first_id == @opendata_top %>
+						<% opendata_top = get_content(@opendata_top) %>
+						<% lnavi = get_list_content(@opendata_top) %>
+						<h2 id="localnav" class="choice plus" aria-current="page"><span class="h2span"><%= opendata_top.page_title %></span></h2>
+						<% ul_flg = false %>
+						
+						<% lnavi.each do |second| %>
+							<% if !second.is_separator? && second.id != @opendata_hf %>
+								<% if second.is_list? %>
+									<% if ul_flg %></ul><% ul_flg = false %><% end %>
+									<h3 class="separator"><%= second.page_title %></h3>
+								<% else %>
+									<% if !ul_flg %><ul><% ul_flg = true %><% end %>
+									<% if route_index(@page.id,second.id) %>
+										<li class="choice" aria-current="page"><%= second.page_title %></li>
+									<% else %>
+										<li><%= set_link(second,1) %></li>
+									<% end %>
+								<% end %>
+								<% third = get_list_content(second) %>
+								<% third.each do |page| %>
+									<% if !ul_flg %><ul><% ul_flg = true %><% end %>
+									<% if route_index(@page.id,page.id) %>
+										<li class="choice" aria-current="page"><%= page.page_title %></li>
+									<% else %>
+										<li><%= set_link(page,1) %></li>
+									<% end %>
+								<% end %>
+								<% if ul_flg %></ul><% ul_flg = false %><% end %>
+							<% end %>
+						<% end %>
+						
+						<% if ul_flg %></ul><% ul_flg = false %><% end %>
+					<% else %>
+						<%# routes = get_routes(my_id) # パンくずですでに取得済 %>
+						<%# -- ▽ 1階層の場合 ------------------------------------------------------- %>
+						<% if routes.length == 1 %>
+							<% lnavi = get_list_content(my_id) %><%# 第一階層は、取得対象が親IDでないため、キャッシュを使わない %>
+							<h2 id="localnav" class="choice plus" aria-current="page"><span class="h2span"><%= @page.page_title %></span></h2>
+							<% ul_flg = false %>
+							<% lnavi.each do |navi| %>
+								<% if !navi.is_separator? && !navi.common(10).list.include?('list_hide') %>
+									<% if !ul_flg %><ul><% ul_flg = true %><% end %>
+									<% if route_index(@page.id,navi.id) %>
+										<li class="choice" aria-current="page"><%= @page.page_title %></li>
+									<% else %>
+										<li><%= set_link(navi,1) %></li>
+									<% end %>
+								<% end %>
+							<% end %>
+							<% if ul_flg %></ul><% ul_flg = false %><% end %>
+						<% else %>
+							<%# 同階層の情報を取得 %>
+							<% lnavi = get_lnavi_list(parent_id,routes.length) %>
+							<%# -- ▽ 2階層の場合 --------------------------------------------------- %>
+							<% if routes.length == 2 %>
+								<h2 id="localnav" class="plus"><a href="<%= routes[1].access_path %>"><%= routes[1].page_title %></a></h2>
+								<% ul_flg = false %>
+								<% lnavi.each do |navi| %>
+									<% if !navi["is_separator?"] && !navi["common_10_list"].include?('list_hide') %>
+										<% if !ul_flg %><ul><% ul_flg = true %><% end %>
+										<% if route_index(@page.id,navi["id"]) %>
+											<li class="choice" aria-current="page"><%= @page.page_title %></li>
+										<% else %>
+											<li><%= set_link(navi,1) %></li>
+										<% end %>
+									<% end %>
+								<% end %>
+								<% if ul_flg %></ul><% ul_flg = false %><% end %>
+							<%# -- ▽ 3、4、5階層の場合 --------------------------------------------- %>
+							<% elsif routes.length == 3 || routes.length == 4 || routes.length == 5 %>
+								<% ul_flg = false %>
+								<h2 id="localnav" class="plus"><a href="<%= routes[1].access_path %>"><%= routes[1].page_title %></a></h2>
+								<h3><a href="<%= routes[2].access_path %>"><%= routes[2].page_title %></a></h3>
+								<% if routes.length == 4 %>
+									<h4><a href="<%= routes[3].access_path %>"><%= routes[3].page_title %></a></h4>
+								<% elsif routes.length == 5 %>
+									<h4><a href="<%= routes[3].access_path %>"><%= routes[3].page_title %></a></h4>
+									<h5><a href="<%= routes[4].access_path %>"><%= routes[4].page_title %></a></h5>
+								<% end %>
+								<% if !get_content(parent_id).common(10).list.include?('inner_lnavi') %>
+									<% lnavi.each do |navi| %>
+										<% if navi["is_separator?"] %>
+											<% if ul_flg %></ul><% ul_flg = false %><% end %>
+											<%# 見出しを含むセパレータの場合 %>
+											<% if navi["is_text_separator?"] %>
+												<% h_content =  Nokogiri::HTML(navi["separator"]).xpath("//*[self::h1 or self::h2 or self::h3 or self::h4 or self::h5 or self::h6]")[0] %>
+												<% if !h_content.nil? %>
+													<% if routes.length == 3 %>
+														<h4 class="separator"><%= h_content.inner_html %></h4>
+													<% elsif routes.length == 4 %>
+														<h5 class="separator"><%= h_content.inner_html %></h5>
+													<% elsif routes.length == 5 %>
+														<h6 class="separator"><%= h_content.inner_html %></h6>
+													<% end %>
+												<% end %>
+											<% end %>
+										<% elsif !navi["common_10_list"].include?('list_hide') %>
+											<% if !ul_flg %><ul class="lmenu"><% ul_flg = true %><% end %>
+											<% if route_index(@page.id,navi["id"]) %>
+												<li class="choice" aria-current="page"><%= @page.page_title %></li>
+											<% else %>
+												<li><%= set_link(navi,1) %></li>
+											<% end %>
+										<% end %>
+									<% end %>
+									<% if ul_flg %></ul><% ul_flg = false %><% end %>
+								<% end %>
+							<%# -- ▽ 6階層以上の場合 ----------------------------------------------- %>
+							<% elsif routes.length >= 6 %>
+								<%# 親リストの情報を取得 %>
+								<% parent = get_content(parent_id) %>
+								<% ul_flg = false %>
+								<h2 id="localnav" class="plus"><a href="<%= parent.access_path %>"><%= parent.page_title %></a></h2>
+								<% if !parent.common(10).list.include?('inner_lnavi') %>
+									<% lnavi.each do |navi| %>
+										<% if navi["is_separator?"] %>
+											<% if ul_flg %></ul><% ul_flg = false %><% end %>
+											<% h_content =  Nokogiri::HTML(navi["separator"]).xpath("//*[self::h1 or self::h2 or self::h3 or self::h4 or self::h5 or self::h6]")[0] %>
+											<%# 見出しを含むセパレータの場合 %>
+											<% if !h_content.nil? %>
+												<h3 class="separator"><%= h_content.inner_html %></h3>
+											<% end %>
+										<% elsif !navi["common_10_list"].include?('list_hide') %>
+											<% if !ul_flg %><ul><% ul_flg = true %><% end %>
+											<% if route_index(@page.id,navi["id"]) %>
+												<li class="choice" aria-current="page"><%= @page.page_title %></li>
+											<% else %>
+												<li><%= set_link(navi,1) %></li>
+											<% end %>
+										<% end %>
+									<% end %>
+									<% if ul_flg %></ul><% ul_flg = false %><% end %>
+								<% end %>
+							<% end %>
+						<% end %>
+					<% end %>
+				<%# <!-- ▲▲▲ END menu ▲▲▲ --> %></div>
+			<%# <!-- ▲▲▲ END menubg ▲▲▲ --> %></div>
+		<%# <!-- ▲▲▲ END lnavi ▲▲▲ --> %></nav>
+		<%# ━━━ ▲ ［T］ローカルナビ  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+	<% end %>
+	<%# ====== △△ content1、2、3 △△ =============================================================== %>
+	<%# ━━━ ▲ ［TD］本文 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+	
+	<%# ━━━ ▼ ［T］オープンデータ、申請書用フッタ出力用  ━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+	<% if opd_footer || dllist_footer || @page.id == @shinsei_top %>
+		<%# <!-- ▲▲▲ END opendata ▲▲▲ --> %></div>
+	<% end %>
+	<%# ━━━ ▲ ［T］オープンデータ、申請書用フッタ出力用  ━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+
+	<%# <!-- ▲▲▲ END pagebody ▲▲▲ --> %></div>
+<% end %>
+<%# ====== ▲▲ トップページ以外 ▲▲ ================================================================= %>
+
+<hr class="hide">
+
+<%# ━━━ ▼ ［D］ページガイド・表示切替  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+<% if ['751_top','752_saigaitop'].include?(@page.template_code) %>
+	<%# トップページ %>
+	<aside id="topguidebg" role="complementary">
+<% else %>
+	<%# 通常 %>
+	<aside id="guidebg" role="complementary">
+<% end %>
+
+	<div id="guide" <% if enq_footer %> class="clearfix"<% end %>>
+		<% if !['752_saigaitop'].include?(@page.template_code) %>
+			<p class="pagetop"><a href="#wrap"><img src="<%= site_template_path %>/_res/design/images/page/mark_pagetop.png" alt="このページの先頭へ戻る" width="116" height="148"></a></p>
+		<% end %>
+		<ul>
+			<% unless enq_footer %><li><a href="javascript:history.back();" class="pageback">前のページへ戻る</a></li><% end %>
+			<% unless ['751_top','752_saigaitop'].include?(@page.template_code) %>
+				<% if @system.is_snapshot? %>
+					<li><a href="<%= @top_url %>" class="pagehome">トップページへ戻る</a></li>
+				<% else %>
+					<li><a href="<%=get_access_path(@top) %>" class="pagehome">トップページへ戻る</a></li>
+				<% end %>
+			<% end %>
+		</ul>
+
+	<%# <!-- ▲▲▲ END guide ▲▲▲ --> %></div>
+<%# <!-- ▲▲▲ END guidebg ▲▲▲ --> %></aside>
+<%# ━━━ ▲ ［D］ページガイド・表示切替  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+
+<hr class="hide">
+
+<%# ━━━ ▼ ［D］スマホボトムナビ  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+<% if !['752_saigaitop'].include?(@page.template_code) && @designptn != "iju" && @designptn != "tomihiro" && @designptn != "iwajuku" && @designptn != "oomama" %>
+	<nav id="jssmpbtmnavi" class="smponly">
+		<ul>
+			<li id="jssmpbtmnavi01"></li>
+			<li id="jssmpbtmnavi02"></li>
+			<li id="jssmpbtmnavi03"></li>
+			<li id="jssmpbtmnavi04">
+				<div id="smpmenup4bg" class="smpmenup">
+					<div id="smpmenup4" class="bmenu">
+						<button class="hnmenu" aria-expanded="false" aria-controls="smpmenup4menu"><span>おすすめ</span></button>
+						<div id="smpmenup4menu" class="openmenu" aria-hidden="true">
+							<button class="psclose">閉じる</button>
+						<%# <!-- ▲▲▲ END smpmenup2menu ▲▲▲ --> %></div>
+					<%# <!-- ▲▲▲ END bmenu ▲▲▲ --> %></div>
+				<%# <!-- ▲▲▲ END smpmenup ▲▲▲ --> %></div>
+			</li>
+		</ul>
+	<%# <!-- ▲▲▲ END jssmpbtmnavi ▲▲▲ --> %></nav>
+<% end %>
+<%# ━━━ ▲ ［D］スマホボトムナビ  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+
+<hr class="hide">
+
+<%# ━━━ ▼ ［D］フッター  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+<footer role="contentinfo">
+	<% if ['751_top','752_saigaitop','703_ijutop','704_yakatatop'].include?(@page.template_code) %>
+		<%# トップページ %>
+		<div id="topfooterbg" class="clearfix">
+	<% else %>
+		<%# 通常 %>
+		<div id="footerbg" class="clearfix">
+	<% end %>
+
+	<% if @designptn == "iju" %>
+		<div id="footer">
+			<div class="footerinner">
+				<h2><img src="<%= site_template_path %>/_res/<%= @designptn %>/images/footer/footer_sitename.png" alt="みどり市移住・定住ポータルサイト" width="302" height="89"></h2>
+				<div id="add">
+					<p class="section">笠懸庁舎　総務部　地域創生課</p>
+					<div class="add-layout">
+						<address>〒379-2395<br>群馬県みどり市笠懸町鹿2952番地</address>
+						<div class="telfax">
+							<p class="tel"><span>電話</span> <a href="tel:0277762111">0277-76-2111</a></p>
+							<p class="fax"><span>ファクス</span> 0277-76-2449</p>
+						</div>
+					</div>
+				</div>
+			</div>	
+		</div>
+		<div id="copy"><p lang="en">&copy; 2024 Midori City, All Rights Reserved.</p></div>
+	<% elsif @designptn == "tomihiro" %>
+		<div id="footer">
+			<h2>富弘美術館</h2>
+			<div id="add">
+				<div class="add-layout">
+					<address>〒376-0302 群馬県みどり市東町草木86番地</address>
+					<div class="telfax">
+						<p class="tel"><span>電話</span>: <a href="tel:0277956333">0277-95-6333</a></p>
+						<p class="fax"><span>ファクス</span>: 0277-95-6100</p>
+					</div>
+				</div>
+			</div>			
+		</div>
+		<div id="copy"><p lang="en">&copy; 2024 Midori City, All Rights Reserved.</p></div>
+	<% elsif @designptn == "iwajuku" %>
+		<div id="footer">
+			<h2>みどり市岩宿博物館</h2>
+			<div id="add">
+				<div class="add-layout">
+					<address>〒379-2311 群馬県みどり市笠懸町阿左美1790番地1</address>
+					<div class="telfax">
+						<p class="tel"><span>電話</span>: <a href="tel:0277761701">0277-76-1701</a></p>
+						<p class="fax"><span>ファクス</span>: 0277-76-1703</p>
+					</div>
+				</div>
+			</div>			
+		</div>
+		<div id="copy"><p lang="en">&copy; 2024 Midori City, All Rights Reserved.</p></div>
+	<% elsif @designptn == "oomama" %>
+		<div id="footer">
+			<h2>みどり市大間々博物館（コノドント館）</h2>
+			<div id="add">
+				<div class="add-layout">
+					<address>〒376-0101 群馬県みどり市大間々町大間々1030</address>
+					<div class="telfax">
+						<p class="tel"><span>電話</span>: <a href="tel:0277734123">0277-73-4123</a></p>
+						<p class="fax"><span>ファクス</span>: 0277-73-4145</p>
+					</div>
+				</div>
+			</div>			
+		</div>
+		<div id="copy"><p lang="en">&copy; 2024 Midori City, All Rights Reserved.</p></div>			
+	<% elsif ['752_saigaitop'].include?(@page.template_code)%>
+		<div id="footer">
+			<div class="footernavi-list">
+				<ul>
+					<li><a href="<%=get_access_path(@policy) %>">プライバシーポリシー</a></li>
+					<li><a href="<%=get_access_path(@linklist) %>">リンク集</a></li>
+					<li><a href="<%= get_access_path(@sitemap) %>">サイトマップ</a></li>
+				</ul>
+			</div>
+		</div>
+		<div id="copy"><p lang="en">&copy; 2024 Midori City, All Rights Reserved.</p></div>
+	<% else %>
+		<div class="footer-layout">
+			<div id="footer">
+
+				<div id="add" class="articleall">
+					<h2 class="plus">庁舎情報</h2>
+					<ul class="footeradd-list article">
+						<li class="footeradd-item articleall3">
+							<h3 class="plus3"><button>笠懸庁舎</button></h3>
+							<div class="article">
+								<p>〒379-2395</p>
+								<p>群馬県みどり市笠懸町鹿2952番地</p>
+								<p>電話 <a href="tel:0277762111">0277-76-2111</a></p>
+								<p>ファクス 0277-76-2449</p>
+							</div>
+						</li>
+						<li class="footeradd-item articleall3">
+							<h3 class="plus3"><button>大間々庁舎</button></h3>
+							<div class="article">
+								<p>〒376-0192</p>
+								<p>群馬県みどり市大間々町大間々1511番地</p>
+								<p>電話 <a href="tel:0277762111">0277-76-2111</a></p>
+								<p>ファクス 0277-72-2226</p>
+							</div>
+						</li>
+						<li class="footeradd-item articleall3">
+							<h3 class="plus3"><button>農林業センター</button></h3>
+							<div class="article">
+								<p>〒379-2311</p>
+								<p>群馬県みどり市笠懸町阿左美1912番地1</p>
+								<p>電話 <a href="tel:0277762111">0277-76-2111</a></p>
+								<p>ファクス 0277-76-1780</p>
+							</div>
+						</li>
+						<li class="footeradd-item articleall3">
+							<h3 class="plus3"><button>教育庁舎</button></h3>
+							<div class="article">
+								<p>〒376-0101</p>
+								<p>群馬県みどり市大間々町大間々235番地6</p>
+								<p>電話 <a href="tel:0277762111">0277-76-2111</a></p>
+								<p>ファクス 0277-76-1954</p>
+							</div>
+						</li>
+						<li class="footeradd-item articleall3">
+							<h3 class="plus3"><button>東支所</button></h3>
+							<div class="article">
+								<p>〒376-0397</p>
+								<p>群馬県みどり市東町花輪205番地2</p>
+								<p>電話 <a href="tel:0277762111">0277-76-2111</a></p>
+								<p>ファクス 0277-97-2221</p>
+							</div>
+						</li>
+						<li class="footeradd-item articleall3">
+							<h3 class="plus3"><button>開庁時間と延長窓口</button></h3>
+							<div class="article">
+								<p class="footeradd-item-kaicho">開庁時間</p>
+								<p class="footeradd-item-txt">月曜日から金曜日</p>
+								<p class="footeradd-item-txt">午前8時30分から午後5時15分</p>
+								<p class="footeradd-item-encho">延長窓口</p>
+								<p class="footeradd-item-txt">月曜日（市民課／大間々庁舎）</p>
+								<p class="footeradd-item-txt">木曜日（市民課／笠懸庁舎）</p>
+								<p class="footeradd-item-txt">午後5時15分から午後7時</p>
+								<p class="footeradd-item-txt2">（祝日および年末年始の12月29日から1月3日を除く）</p>
+							</div>
+						</li>
+					</ul>
+				</div>
+	
+				<div id="addsoshiki" class="articleall">
+					<h2 class="plus">組織情報</h2>
+					<ul class="footersoshiki-list article">
+						<% if is_present(get_text_material_rp("footer_soshiki",@page.id)) %>
+							<%= get_text_material_rp("footer_soshiki",@page.id) %>
+						<% end %>
+					</ul>
+				</div>
+
+				<div id="addaccess" class="articleall">
+					<h2 class="plus">アクセス</h2>
+					<div class="article">
+						<div class="footeraccess-map">
+							<img src="<%= site_template_path %>/_res/<%= @designptn %>/images/footer/footeraccess-map.png?a" alt="イラスト：群馬県内のみどり市位置" width="341" height="281">
+						</div>
+						<ul class="footeraccess-list">
+							<li class="footeraccess-item"><a href="<%=get_access_path(@access) %>">市役所へのアクセス</a></li>
+							<li class="footeraccess-item"><a href="https://www.city.midori.gunma.jp/cgi-bin/contacts/G010500">お問い合わせ</a></li>
+						</ul>
+					</div>
+				</div>
+	
+			</div>
+		</div>
+				
+		<div id="footernavi" class="clearfix">
+
+			<div class="footernavi-layout">
+
+				<div class="footer-sitename"><img src="<%= site_template_path %>/_res/<%= @designptn %>/images/header/tlogo.png" alt="みどり市公式サイト" width="181" height="63"></div>
+		
+				<div class="footernavi-list">
+					<ul>
+						<li><a href="<%=get_access_path(@policy) %>">プライバシーポリシー</a></li>
+						<li><a href="<%=get_access_path(@linklist) %>">リンク集</a></li>
+						<li><a href="<%= get_access_path(@sitemap) %>">サイトマップ</a></li>
+					</ul>
+					<div id="copy" class="pconly"><p lang="en">&copy; 2024 Midori City, All Rights Reserved.</p></div>
+				</div>
+
+			</div>
+	
+			<div class="footer-sns">
+				<p><a href="https://page.line.me/kgi1074d?openQrModal=true" target="_blank"><img src="<%= site_template_path %>/_res/<%= @designptn %>/images/footer/icon-line.png" alt="みどり市公式LINE" width="32" height="31"></a></p>
+				<p><a href="https://www.instagram.com/16106_midori_city/" target="_blank"><img src="<%= site_template_path %>/_res/<%= @designptn %>/images/footer/icon-insta.png" alt="みどり市公式instagram" width="32" height="31"></a></p>
+				<p><a href="https://www.youtube.com/channel/UCFmEMrb5U2A9qeczUsYfmSg/videos" target="_blank"><img src="<%= site_template_path %>/_res/<%= @designptn %>/images/footer/icon-youtube.png" alt="みどり市公式Youtube" width="41" height="29"></a></p>
+				<p><a href="https://x.com/midori_city?s=21&t=x-UvB6tUaqRlS_ptQFEj4A" target="_blank"><img src="<%= site_template_path %>/_res/<%= @designptn %>/images/footer/icon-x.png" alt="みどり市公式X" width="28" height="29"></a></p>
+			</div>
+
+			<div id="copy" class="smponly"><p lang="en">&copy; 2024 Midori City, All Rights Reserved.</p></div>
+		<%# <!-- ▲▲▲ END footernavi ▲▲▲ --> %></div>
+	<% end %>
+	<%# <!-- ▲▲▲ END footerbg ▲▲▲ --> %></div>
+	
+<%# <!-- ▲▲▲ END footer ▲▲▲ --> %></footer>
+<%# ━━━ ▲ ［D］フッター  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+
+<%# <!-- ▲▲▲ END wrap ▲▲▲ --> %></div>
+<%# <!-- ▲▲▲ END wrapbg ▲▲▲ --> %></div>
+
+
+<%# ━━━ ▼ ［D］CMS内スマホ表示枠  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+<% if !@system.is_snapshot? %>
+	<!-- ▲▲▲ END cmswrap ▲▲▲ --></div>
+<% end %>
+<%# ━━━ ▲ ［D］CMS内スマホ表示枠  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+<%# ━━━ ▼ ［T］外部リンクチェッカー ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+<% if @page.template_code != "906_header_footer" %>
+  <!-- xmldata for linkcheck start
+  <linkdata>
+	<pageid><%= @page.id %></pageid>
+	<pagetitle><%= @page.page_title %></pagetitle>
+	<pageurl><%= @site.public_base_url + URI::escape(@page.access_path).gsub(/\.\/|\.\.\/|^\./){''} %></pageurl>
+	<device>p</device>
+	<groupid><%= @page.group_code if @page.group_code != 'anonymous' %></groupid>
+	<groupname><%= @page.group_name if @page.group_code != 'anonymous' %></groupname>
+	<linktitle></linktitle>
+	<linkurl></linkurl>
+  </linkdata>
+	 xmldata for linkcheck end  -->
+<% end %>
+<%# ━━━ ▲ ［T］外部リンクチェッカー ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+<%# ━━━ ▼ ［T］テンプレートバージョン表示 ━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+<% if !@system.is_snapshot? %>
+	<p class="cms_temp_footer">
+	<span class="version">TsuNaGo Template Base Ver.<%= File.read("./public/_template_/template_version.txt") %></span>
+	</p>
+<% end %>
+<%# ━━━ ▲ ［T］テンプレートバージョン表示 ━━━━━━━━━━━━━━━━━━━━━━━━━━ %>
+</body>
+</html>
+<% end %>
